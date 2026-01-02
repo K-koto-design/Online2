@@ -2,14 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>К-Онлайн</title>
-    <meta name="apple-mobile-web-app-title" content="К-Онлайн">
-    <link rel="apple-touch-icon" href="https://i.postimg.cc/QtVHC5G0/IMG-3035.jpg">
-    <link rel="icon" type="image/png" href="https://i.postimg.cc/QtVHC5G0/IMG-3035.jpg">
-    
+    <title>К-Онлайн Банк</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="К-Онлайн">
     
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -17,411 +14,433 @@
 
     <style>
         :root {
-            --bg-body: #f0f4f8;
+            --bg-main: #f0f4f8;
             --grad-red: linear-gradient(170deg, #000a1a 0%, #1a0000 40%, #660000 100%);
             --grad-pay: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --white: #ffffff;
-            --danger: #ff3b30;
             --radius-card: 28px;
             --radius-btn: 22px;
-            --anim-screen: 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            --anim-fast: 0.3s ease;
+            --anim-screen: 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg-body); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; -webkit-font-smoothing: antialiased; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        /* Общие стили */
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: var(--bg-main); 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; 
+            -webkit-font-smoothing: antialiased; 
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+
+        /* Снег */
         #snow-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
-        
-        .screen { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; overflow-y: auto; background: var(--bg-body); z-index: 10; opacity: 0; transform: scale(0.96); transition: opacity var(--anim-screen), transform var(--anim-screen); }
+
+        /* Система экранов */
+        .screen { 
+            display: none; position: absolute; inset: 0; 
+            overflow-y: auto; background: var(--bg-main); 
+            z-index: 10; opacity: 0; transform: scale(0.96); 
+            transition: opacity var(--anim-screen), transform var(--anim-screen); 
+        }
         .screen.active { display: block !important; opacity: 1; transform: scale(1); }
 
-        /* Auth screens center content */
-        #screen-pin-entry, #screen-otp-entry { background: var(--grad-red); color: white; display:none; flex-direction: column; justify-content: space-between; align-items: center; padding: 80px 30px 50px; }
+        /* Шапка приложения */
+        .header-top { background: var(--grad-red); padding: 70px 0 45px; border-radius: 0 0 50px 50px; color: white; position: relative; z-index: 11; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+        .user-meta { display: flex; justify-content: space-between; align-items: center; padding: 0 25px; margin-bottom: 25px; }
+        
+        /* Кнопки в шапке */
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .h-btn { 
+            width: 48px; height: 48px; border-radius: 16px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 22px; cursor: pointer; transition: transform 0.2s active;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .h-btn:active { transform: scale(0.9); }
+        .btn-qr { background: var(--grad-pay); }
+        .btn-history { background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
 
-        .auth-wrap { padding: 80px 30px; text-align: center; min-height: 100vh; background: #fff; }
-        .logo-text { font-size: 52px; font-weight: 900; background: linear-gradient(45deg, #ff0000, #ffcc00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; letter-spacing: -2px; }
+        /* Аватар */
+        .ava-box { 
+            width: 60px; height: 60px; background: rgba(255,255,255,0.1); 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            font-weight: 800; font-size: 24px; border: 2px solid rgba(255,255,255,0.2); 
+            position: relative; 
+        }
+        .santa-hat { position: absolute; top: -20px; left: -14px; font-size: 32px; transform: rotate(-15deg); }
 
-        .pin-dots { display: flex; gap: 15px; margin: 40px 0; }
-        .p-dot { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; }
-        .p-dot.active { background: #ffcc00; border-color: #ffcc00; box-shadow: 0 0 15px #ffcc00; }
+        /* Карточки баланса */
+        .cards-slider { display: flex; overflow-x: auto; padding: 10px 25px 30px; gap: 18px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .cards-slider::-webkit-scrollbar { display: none; }
+        .card-item { 
+            min-width: 230px; height: 140px; border-radius: var(--radius-card); 
+            padding: 25px; display: flex; flex-direction: column; justify-content: space-between; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3); flex-shrink: 0;
+            transition: transform 0.3s;
+        }
+        .card-main { background: linear-gradient(160deg, #1a1a1a 0%, #000000 100%); color: white; }
+        .card-usd { background: linear-gradient(160deg, #002f6c 0%, #001433 100%); color: white; }
+        .card-gold { background: linear-gradient(160deg, #d4af37 0%, #f1c40f 100%); color: #4a3b00; }
 
-        .otp-input-group { display: flex; gap: 8px; justify-content: center; margin-top: 30px; }
-        .otp-box { width: 45px; height: 55px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; }
-        .otp-box.active { border-color: #ffcc00; box-shadow: 0 0 10px rgba(255,204,0,0.3); }
+        /* Виджеты/Меню */
+        .menu-section { padding: 15px 25px; }
+        .menu-item { 
+            background: #fff; border-radius: 25px; padding: 20px; 
+            display: flex; align-items: center; gap: 15px; margin-bottom: 15px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04); cursor: pointer;
+            transition: background 0.2s;
+        }
+        .menu-item:active { background: #f9f9f9; }
+        .m-icon { width: 55px; height: 55px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
 
-        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; max-width: 300px; margin-top: 20px; }
-        .k-btn { height: 70px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 28px; backdrop-filter: blur(5px); cursor: pointer; }
-        .k-btn:active { background: rgba(255,255,255,0.3); }
+        /* Список истории */
+        .hist-container { padding: 0 25px 100px; }
+        .hist-row { 
+            background: #fff; padding: 18px; border-radius: 22px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .hist-info b { display: block; font-size: 16px; margin-bottom: 4px; }
+        .hist-info span { font-size: 12px; color: #aaa; }
+        .hist-val { font-weight: 800; font-size: 17px; }
+        .val-plus { color: #27ae60; }
+        .val-minus { color: #000; }
 
-        .header-top { background: var(--grad-red); padding: 60px 0 40px; border-radius: 0 0 50px 50px; color: white; position: relative; }
-        .user-meta { display: flex; justify-content: space-between; padding: 0 30px; align-items: center; margin-bottom: 25px; }
-        .ava-box { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 24px; border: 2px solid rgba(255,255,255,0.3); position: relative; }
-        .santa-hat { position: absolute; top: -20px; left: -10px; font-size: 30px; transform: rotate(-15deg); }
-        .scan-trigger { width: 45px; height: 45px; background: var(--grad-pay); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4); }
+        /* Поля ввода и кнопки */
+        .form-group { padding: 30px 25px; }
+        input, textarea { 
+            width: 100%; height: 65px; border-radius: 20px; border: 1px solid #eee; 
+            padding: 0 20px; font-size: 17px; margin-bottom: 15px; 
+            background: #f9f9f9; font-family: inherit; transition: border 0.2s;
+        }
+        input:focus { border-color: #007aff; background: #fff; }
+        .btn-action { 
+            width: 100%; height: 65px; border: none; border-radius: 24px; 
+            font-size: 18px; font-weight: 700; cursor: pointer; 
+            background: #000; color: #fff; transition: 0.3s;
+        }
+        .btn-action:active { transform: scale(0.97); opacity: 0.8; }
 
-        .cards-row { display: flex; overflow-x: auto; padding: 10px 30px 30px; gap: 15px; scrollbar-width: none; }
-        .v-card { min-width: 210px; height: 130px; border-radius: var(--radius-card); padding: 25px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 15px 30px rgba(0,0,0,0.3); flex-shrink: 0; }
-        .c-black { background: linear-gradient(160deg, #1a1a1a 0%, #000 100%); color: white; }
-        .c-blue { background: linear-gradient(160deg, #002f6c 0%, #001433 100%); color: white; }
-        .c-gold { background: linear-gradient(160deg, #d4af37 0%, #f1c40f 100%); color: #4a3b00; }
-
-        .widget { background: #fff; border-radius: 24px; padding: 20px; margin: 15px 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); cursor: pointer;}
-        .w-ico { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-
-        .history-box { padding: 20px 25px; }
-        .h-item { background: #fff; border-radius: 18px; padding: 15px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .h-ico { font-size: 22px; width: 45px; height: 45px; background: #f8f9fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-        .h-info { flex: 1; }
-        .h-name { font-size: 15px; font-weight: 700; color: #333; }
-        .h-status { font-size: 12px; margin-top: 2px; }
-        .h-sum { font-weight: 800; font-size: 16px; }
-        .sum-neg { color: #000; }
-        .sum-pos { color: #27ae60; }
-        .sum-wait { color: #f39c12; }
-
-        input, textarea { width: 100%; height: 60px; border-radius: 18px; border: 1px solid #eee; padding: 0 20px; font-size: 17px; margin-bottom: 15px; background: #f9f9f9; font-family: inherit; outline: none; }
-        .btn-main { width: 100%; height: 60px; border: none; border-radius: var(--radius-btn); font-size: 17px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .btn-black { background: #000; color: #fff; }
-        .btn-red { background: var(--danger); color: #fff; }
-        .btn-pay { background: var(--grad-pay); color: white; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
-        .modal-in { background: #fff; width: 85%; border-radius: 35px; padding: 35px; text-align: center; }
-        .modal-pay { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.3); color: white; }
-
-        .history-trigger { position: absolute; top: 60px; right: 25px; font-size: 30px; cursor: pointer; z-index: 100; }
-        #qr-screen { position: fixed; inset: 0; background: #000; z-index: 10000; display: none; }
-        #reader { width: 100%; height: 100%; }
-        .qr-overlay { position: absolute; inset: 0; border: 40px solid rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; pointer-events: none; }
-        .qr-cutout { width: 250px; height: 250px; border: 4px solid #00f2fe; border-radius: 20px; }
+        /* Экраны авторизации (ПИН и OTP) */
+        #screen-pin-entry, #screen-otp-entry { 
+            background: var(--grad-red); color: white; display:none; 
+            flex-direction: column; justify-content: space-between; 
+            align-items: center; padding: 100px 30px 60px; 
+        }
+        .dots-row { display: flex; gap: 15px; margin: 40px 0; }
+        .dot { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; transition: 0.2s; }
+        .dot.fill { background: #ffcc00; border-color: #ffcc00; box-shadow: 0 0 15px #ffcc00; }
+        
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 320px; }
+        .n-btn { 
+            height: 80px; border-radius: 50%; background: rgba(255,255,255,0.08); 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 30px; backdrop-filter: blur(10px); cursor: pointer;
+        }
+        .n-btn:active { background: rgba(255,255,255,0.2); }
     </style>
 </head>
 <body>
     <canvas id="snow-canvas"></canvas>
 
-    <div id="qr-screen">
-        <div id="reader"></div>
-        <div class="qr-overlay"><div class="qr-cutout"></div></div>
-        <button onclick="bank.closeScanner()" style="position:fixed; bottom:50px; left:50%; transform:translateX(-50%); padding:15px 40px; border-radius:20px; background:white; border:none; font-weight:800; z-index:10001;">ОТМЕНА</button>
-    </div>
-
-    <div id="modal-qr-pay" class="modal">
-        <div class="modal-in modal-pay">
-            <div style="font-size:50px; margin-bottom:10px;">💳</div>
-            <h2 style="margin:0">Оплата заказа</h2>
-            <div id="qr-pay-sum" style="font-size:48px; font-weight:900; margin:15px 0;">0 ₽</div>
-            <button class="btn-main btn-pay" id="confirm-qr-btn">ПОДТВЕРДИТЬ</button>
-            <div onclick="document.getElementById('modal-qr-pay').style.display='none'" style="margin-top:20px; opacity:0.6;">Отмена</div>
-        </div>
-    </div>
-
-    <div id="modal-success" class="modal">
-        <div class="modal-in">
-            <div style="font-size:60px; margin-bottom:15px;">🎄</div>
-            <h2 id="suc-h">Готово!</h2>
-            <div id="suc-val" style="font-size:32px; font-weight:900; margin:10px 0;">0 ₽</div>
-            <p id="suc-p" style="color:#888; margin-bottom:25px;"></p>
-            <button class="btn-main btn-red" onclick="view.hideSuccess()">Закрыть</button>
-        </div>
-    </div>
-
     <div id="screen-auth" class="screen active">
-        <div class="auth-wrap">
-            <h1 class="logo-text">К-Онлайн</h1>
-            <p style="color:#888; font-weight:500; margin: 10px 0 40px;">Введите ваш Telegram ID ❄️</p>
-            <input type="number" id="auth-tg-id" placeholder="ID (например: 1234567)">
-            <button class="btn-main btn-black" onclick="logic.requestOTP()">Получить код</button>
-            <p style="margin-top:25px; color:#666;">Нет аккаунта? <span style="color:#007aff; cursor:pointer; font-weight:600;" onclick="view.nav('screen-register')">Создать</span></p>
+        <div style="padding: 100px 35px; text-align: center; background: #fff; height: 100vh;">
+            <h1 style="font-size:56px; font-weight:900; background:linear-gradient(45deg, #ff0000, #ffcc00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin:0; letter-spacing: -2px;">К-Онлайн</h1>
+            <p style="color:#999; margin: 15px 0 50px; font-size: 18px;">Ваш персональный банк ❄️</p>
+            <input type="number" id="inp-auth-id" placeholder="Введите Telegram ID">
+            <button class="btn-action" onclick="logic.startAuth()">Войти в кабинет</button>
+            <p style="margin-top:40px; color:#888;">Нет доступа? <span style="color:#007aff; font-weight:600;" onclick="view.nav('screen-reg')">Регистрация</span></p>
         </div>
     </div>
 
-    <div id="screen-register" class="screen">
-        <div style="padding:60px 25px;">
-            <div style="font-size:30px; margin-bottom:20px; cursor:pointer;" onclick="view.nav('screen-auth')">←</div>
-            <h2 style="font-size:32px; font-weight:900;">Новый аккаунт</h2>
-            <input type="number" id="reg-tg-id" placeholder="Ваш Telegram ID">
-            <input type="text" id="reg-name" placeholder="Ваше Имя">
-            <input type="password" id="reg-pin" placeholder="ПИН (4 цифры)" maxlength="4">
-            <button class="btn-main btn-black" onclick="logic.registerRequest()">Отправить заявку</button>
-        </div>
-    </div>
-
-    <div id="screen-otp-entry" class="screen">
-        <div style="text-align:center;">
-            <h2>Подтверждение</h2>
-            <p style="opacity:0.7;">Код отправлен в Telegram</p>
-            <div class="otp-input-group">
-                <div class="otp-box" id="otp-0"></div><div class="otp-box" id="otp-1"></div><div class="otp-box" id="otp-2"></div>
-                <div class="otp-box" id="otp-3"></div><div class="otp-box" id="otp-4"></div><div class="otp-box" id="otp-5"></div>
-            </div>
-        </div>
-        <div class="keypad">
-            <div class="k-btn" onclick="logic.tapOtp('1')">1</div><div class="k-btn" onclick="logic.tapOtp('2')">2</div><div class="k-btn" onclick="logic.tapOtp('3')">3</div>
-            <div class="k-btn" onclick="logic.tapOtp('4')">4</div><div class="k-btn" onclick="logic.tapOtp('5')">5</div><div class="k-btn" onclick="logic.tapOtp('6')">6</div>
-            <div class="k-btn" onclick="logic.tapOtp('7')">7</div><div class="k-btn" onclick="logic.tapOtp('8')">8</div><div class="k-btn" onclick="logic.tapOtp('9')">9</div>
-            <div class="k-btn" style="opacity:0;"></div><div class="k-btn" onclick="logic.tapOtp('0')">0</div><div class="k-btn" onclick="logic.tapOtp('DEL')">⌫</div>
+    <div id="screen-reg" class="screen">
+        <div style="padding: 60px 25px;">
+            <div style="font-size:32px; margin-bottom:25px;" onclick="view.nav('screen-auth')">←</div>
+            <h2 style="font-size:34px; font-weight:900; margin-bottom:30px;">Новый клиент</h2>
+            <input type="number" id="reg-id" placeholder="Telegram ID">
+            <input type="text" id="reg-name" placeholder="Как вас зовут?">
+            <input type="password" id="reg-pin" placeholder="Придумайте ПИН (4 цифры)" maxlength="4">
+            <button class="btn-action" onclick="logic.sendReg()">Отправить заявку</button>
         </div>
     </div>
 
     <div id="screen-pin-entry" class="screen">
         <div style="text-align:center;">
-            <h2 id="pin-user-name">Вход</h2>
-            <div class="pin-dots">
-                <div class="p-dot"></div><div class="p-dot"></div><div class="p-dot"></div><div class="p-dot"></div>
+            <h2 style="font-size:24px; opacity:0.8;" id="pin-title">Введите ПИН</h2>
+            <div class="dots-row">
+                <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
             </div>
         </div>
-        <div class="keypad">
-            <div class="k-btn" onclick="logic.tapPin('1')">1</div><div class="k-btn" onclick="logic.tapPin('2')">2</div><div class="k-btn" onclick="logic.tapPin('3')">3</div>
-            <div class="k-btn" onclick="logic.tapPin('4')">4</div><div class="k-btn" onclick="logic.tapPin('5')">5</div><div class="k-btn" onclick="logic.tapPin('6')">6</div>
-            <div class="k-btn" onclick="logic.tapPin('7')">7</div><div class="k-btn" onclick="logic.tapPin('8')">8</div><div class="k-btn" onclick="logic.tapPin('9')">9</div>
-            <div class="k-btn" style="opacity:0;"></div><div class="k-btn" onclick="logic.tapPin('0')">0</div><div class="k-btn" onclick="logic.tapPin('DEL')">⌫</div>
+        <div class="numpad">
+            <div class="n-btn" onclick="logic.pinTap('1')">1</div><div class="n-btn" onclick="logic.pinTap('2')">2</div><div class="n-btn" onclick="logic.pinTap('3')">3</div>
+            <div class="n-btn" onclick="logic.pinTap('4')">4</div><div class="n-btn" onclick="logic.pinTap('5')">5</div><div class="n-btn" onclick="logic.pinTap('6')">6</div>
+            <div class="n-btn" onclick="logic.pinTap('7')">7</div><div class="n-btn" onclick="logic.pinTap('8')">8</div><div class="n-btn" onclick="logic.pinTap('9')">9</div>
+            <div style="opacity:0"></div><div class="n-btn" onclick="logic.pinTap('0')">0</div><div class="n-btn" onclick="logic.pinTap('DEL')">⌫</div>
         </div>
     </div>
 
-    <div id="screen-home" class="screen">
-        <div class="history-trigger" onclick="view.nav('screen-history')">📃</div>
+    <div id="screen-main" class="screen">
         <div class="header-top">
             <div class="user-meta">
                 <div>
-                    <div id="h-name" style="font-size:24px; font-weight:900;">Загрузка...</div>
-                    <div id="h-tg" style="font-size:12px; opacity:0.6;">ID: ---</div>
+                    <div id="u-name" style="font-size:28px; font-weight:900;">Загрузка...</div>
+                    <div id="u-id" style="font-size:13px; opacity:0.5; margin-top:4px;">ID: ---</div>
                 </div>
-                <div style="display:flex; align-items:center; gap:15px;">
-                    <div class="scan-trigger" onclick="bank.openScanner()">📷</div>
-                    <div class="ava-box"><span class="santa-hat">🎅</span><span id="h-ava">?</span></div>
+                <div class="header-actions">
+                    <div class="h-btn btn-qr" onclick="alert('Сканер активирован')">📷</div>
+                    <div class="h-btn btn-history" onclick="view.nav('screen-hist')">📋</div>
+                    <div class="ava-box">
+                        <span class="santa-hat">🎅</span>
+                        <span id="u-ava">?</span>
+                    </div>
                 </div>
             </div>
-            <div class="cards-row" id="h-cards"></div>
+            <div class="cards-slider" id="u-cards-box">
+                </div>
         </div>
-        <div class="widget" onclick="view.nav('screen-transfer')">
-            <div class="w-ico" style="background:#fff0f0; color:#e74c3c;">🎁</div>
-            <div style="flex:1;"><b>Перевод</b><div style="font-size:12px; color:#aaa;">Моментально</div></div>
-        </div>
-        <div class="widget" onclick="view.nav('screen-exchange')">
-            <div class="w-ico" style="background:#e3f2fd; color:#3498db;">💵</div>
-            <div style="flex:1;"><b>Обмен валюты</b><div id="w-usd">0.00 $</div></div>
-        </div>
-        <div class="widget" onclick="view.nav('screen-loan')">
-            <div class="w-ico" style="background:#fff9e6; color:#f1c40f;">🌟</div>
-            <div style="flex:1;"><b>Карта Gold</b><div style="font-size:12px; color:#aaa;">Лимит до 500к</div></div>
-        </div>
-    </div>
 
-    <div id="screen-history" class="screen">
-        <div style="padding:60px 25px;">
-            <div style="font-size:30px; margin-bottom:10px; cursor:pointer;" onclick="view.nav('screen-home')">←</div>
-            <h2 style="font-size:32px; font-weight:900;">История</h2>
-            <div class="history-box" id="full-history-list"></div>
-        </div>
-    </div>
-
-    <div id="screen-transfer" class="screen">
-        <div style="padding:60px 25px;">
-            <div style="font-size:30px; margin-bottom:20px; cursor:pointer;" onclick="view.nav('screen-home')">←</div>
-            <h2>Перевод 🎄</h2>
-            <input type="text" id="tr-target" placeholder="ID или Имя">
-            <input type="number" id="tr-val" placeholder="Сумма (₽)">
-            <textarea id="tr-msg" placeholder="Сообщение"></textarea>
-            <button class="btn-main btn-black" onclick="bank.send()">Отправить</button>
-        </div>
-    </div>
-
-    <div id="screen-exchange" class="screen">
-        <div style="padding:60px 25px;">
-            <div style="font-size:30px; margin-bottom:20px; cursor:pointer;" onclick="view.nav('screen-home')">←</div>
-            <h2>Обмен ❄️</h2>
-            <div style="text-align:center; padding:30px; background:#fff; border-radius:30px;">
-                <div style="font-size:42px; font-weight:900;">91.20 ₽</div>
-                <p style="color:#aaa;">Курс за 1 $</p>
-                <input type="number" id="ex-val" placeholder="Кол-во $">
-                <button class="btn-main btn-black" onclick="bank.exchange()">Купить</button>
+        <div class="menu-section">
+            <div class="menu-item" onclick="view.nav('screen-send')">
+                <div class="m-icon" style="background:#fff0f0; color:#e74c3c;">🎁</div>
+                <div style="flex:1;"><b>Перевести деньги</b><div style="font-size:12px; color:#aaa;">По ID или имени</div></div>
+            </div>
+            <div class="menu-item" onclick="view.nav('screen-ex')">
+                <div class="m-icon" style="background:#e3f2fd; color:#3498db;">💵</div>
+                <div style="flex:1;"><b>Обмен валют</b><div id="val-usd-rate" style="font-size:12px; color:#aaa;">Курс: 91.20 ₽</div></div>
+            </div>
+            <div class="menu-item" onclick="view.nav('screen-gold')">
+                <div class="m-icon" style="background:#fff9e6; color:#f1c40f;">🌟</div>
+                <div style="flex:1;"><b>Карта Gold</b><div style="font-size:12px; color:#aaa;">Лимит до 500 000 ₽</div></div>
             </div>
         </div>
     </div>
 
-    <div id="screen-loan" class="screen">
-        <div style="padding:60px 25px;">
-            <div style="font-size:30px; margin-bottom:20px; cursor:pointer;" onclick="view.nav('screen-home')">←</div>
-            <h2>Карта Gold 🌟</h2>
-            <input type="number" id="ln-val" placeholder="Сумма лимита">
-            <button class="btn-main btn-black" onclick="bank.loan()">Запросить</button>
+    <div id="screen-hist" class="screen">
+        <div style="padding: 65px 25px 20px; background:#fff; border-radius: 0 0 40px 40px; margin-bottom: 20px;">
+            <div style="font-size:32px; margin-bottom:15px; cursor:pointer;" onclick="view.nav('screen-main')">←</div>
+            <h2 style="font-size:34px; font-weight:900; margin:0;">История</h2>
+        </div>
+        <div class="hist-container" id="hist-list-box">
+            </div>
+    </div>
+
+    <div id="screen-send" class="screen">
+        <div class="form-group">
+            <div style="font-size:32px; margin-bottom:25px; cursor:pointer;" onclick="view.nav('screen-main')">←</div>
+            <h2 style="font-size:30px; font-weight:800;">Перевод 🎁</h2>
+            <input type="text" id="send-target" placeholder="ID получателя или имя">
+            <input type="number" id="send-val" placeholder="Сумма (₽)">
+            <textarea id="send-msg" placeholder="Комментарий к переводу" style="height:120px; padding-top:20px;"></textarea>
+            <button class="btn-action" onclick="bank.execTransfer()">Отправить запрос</button>
+        </div>
+    </div>
+
+    <div id="screen-ex" class="screen">
+        <div class="form-group">
+            <div style="font-size:32px; margin-bottom:25px; cursor:pointer;" onclick="view.nav('screen-main')">←</div>
+            <h2 style="font-size:30px; font-weight:800;">Купить USD 💵</h2>
+            <div style="background:#fff; padding:30px; border-radius:30px; text-align:center; margin-bottom:25px; box-shadow:0 10px 20px rgba(0,0,0,0.03);">
+                <div style="font-size:48px; font-weight:900;">91.20 ₽</div>
+                <div style="color:#aaa; margin-top:5px;">Цена за 1 доллар</div>
+            </div>
+            <input type="number" id="ex-val" placeholder="Сколько $ купить?">
+            <button class="btn-action" onclick="bank.execExchange()">Выполнить обмен</button>
+        </div>
+    </div>
+
+    <div id="screen-gold" class="screen">
+        <div class="form-group">
+            <div style="font-size:32px; margin-bottom:25px; cursor:pointer;" onclick="view.nav('screen-main')">←</div>
+            <h2 style="font-size:30px; font-weight:800;">Карта Gold 🌟</h2>
+            <p style="color:#777; line-height:1.5; margin-bottom:30px;">Премиальная карта с кредитным лимитом. Подайте заявку, и администратор рассмотрит её в течение 5 минут.</p>
+            <input type="number" id="gold-val" placeholder="Желаемый лимит">
+            <button class="btn-action" onclick="bank.reqGold()">Запросить лимит</button>
         </div>
     </div>
 
     <script>
-        const TG_TOKEN = '8548215166:AAGVqNJxcZe_2bzWiaJIAFz57WRsIYjZQpM'; 
-        const TG_ADMIN_ID = '7597506775';
-        const config = { apiKey: "AIzaSyA3J7KnUgxUHZigwRKmndm7xyxJeeLCrxg", databaseURL: "https://webapp-b7149-default-rtdb.europe-west1.firebasedatabase.app", projectId: "webapp-b7149" };
-        firebase.initializeApp(config);
-        const rtdb = firebase.database();
+        // КОНФИГ
+        const TG_BOT = '8548215166:AAGVqNJxcZe_2bzWiaJIAFz57WRsIYjZQpM';
+        const TG_ADMIN = '7597506775';
+        const FB_CONF = { apiKey: "AIzaSyA3J7KnUgxUHZigwRKmndm7xyxJeeLCrxg", databaseURL: "https://webapp-b7149-default-rtdb.europe-west1.firebasedatabase.app", projectId: "webapp-b7149" };
+        
+        firebase.initializeApp(FB_CONF);
+        const rdb = firebase.database();
 
-        let state = { all: [], user: null, pin: "", otp: "", generatedOtp: "" };
-        let scanner = null;
-
-        // Snow animation
-        const canvas = document.getElementById('snow-canvas');
-        const ctx = canvas.getContext('2d');
-        let flakes = [];
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        window.onresize = resize; resize();
-        for(let i=0; i<70; i++) flakes.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*2+1, v: Math.random()*1+0.3 });
-        function drawSnow() {
-            ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.beginPath();
-            flakes.forEach(f => { ctx.moveTo(f.x, f.y); ctx.arc(f.x, f.y, f.r, 0, Math.PI*2); }); ctx.fill();
-            flakes.forEach(f => { f.y += f.v; if(f.y > canvas.height) f.y = -5; }); requestAnimationFrame(drawSnow);
-        }
-        drawSnow();
-
-        const view = {
-            nav: (id) => {
-                document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); setTimeout(() => { if(!s.classList.contains('active')) s.style.display='none'; }, 400); });
-                const t = document.getElementById(id);
-                t.style.display = (id === 'screen-pin-entry' || id === 'screen-otp-entry') ? 'flex' : 'block';
-                setTimeout(() => t.classList.add('active'), 50);
-                if(id === 'screen-history') view.loadHistory();
-            },
-            drawDash: () => {
-                if(!state.user) return;
-                const u = state.user;
-                document.getElementById('h-name').innerText = u.name;
-                document.getElementById('h-tg').innerText = 'ID: ' + u.telegramId;
-                document.getElementById('h-ava').innerText = u.name[0].toUpperCase();
-                document.getElementById('w-usd').innerText = (u.usd || 0).toFixed(2) + " $";
-                
-                let cards = `<div class="v-card c-black"><div>MIR Physical</div><div style="font-size:24px; font-weight:800;">${(u.balance||0).toLocaleString()} ₽</div></div>`;
-                if(u.usd > 0) cards += `<div class="v-card c-blue"><div>VISA Digital</div><div style="font-size:24px; font-weight:800;">${u.usd.toFixed(2)} $</div></div>`;
-                if(u.hasCredit) cards += `<div class="v-card c-gold"><div>GOLD Credit</div><div style="font-size:24px; font-weight:800;">${(u.creditBalance||0).toLocaleString()} ₽</div></div>`;
-                document.getElementById('h-cards').innerHTML = cards;
-            },
-            loadHistory: () => {
-                const list = document.getElementById('full-history-list');
-                rtdb.ref(`history/${state.user.fbKey}`).on('value', s => {
-                    let h = ''; const data = s.val();
-                    if(!data) { list.innerHTML = '<p style="text-align:center; color:#aaa;">Нет операций</p>'; return; }
-                    Object.keys(data).reverse().forEach(k => {
-                        const i = data[k]; const isPlus = i.type === 'plus';
-                        const cls = isPlus ? 'sum-pos' : (i.status === 'wait' ? 'sum-wait' : 'sum-neg');
-                        h += `<div class="h-item"><div class="h-ico">${i.ico || '💳'}</div><div class="h-info"><div class="h-name">${i.title}</div><div class="h-status">${i.status === 'wait' ? 'Ожидание...' : 'Успешно'}</div></div><div class="h-sum ${cls}">${isPlus?'+':'-'}${i.val.toLocaleString()} ${i.unit || '₽'}</div></div>`;
-                    });
-                    list.innerHTML = h;
-                });
-            },
-            showSuccess: (h, v, p) => {
-                document.getElementById('suc-h').innerText = h; document.getElementById('suc-val').innerText = v; document.getElementById('suc-p').innerText = p;
-                document.getElementById('modal-success').style.display = 'flex';
-            },
-            hideSuccess: () => { document.getElementById('modal-success').style.display='none'; view.nav('screen-home'); }
+        let appState = { 
+            currentUser: null, 
+            clients: [], 
+            pinInput: "" 
         };
 
+        // 1. СНЕЖИНКИ (Анимация)
+        const cvs = document.getElementById('snow-canvas');
+        const ctx = cvs.getContext('2d');
+        let flakes = [];
+        function resize() { cvs.width = window.innerWidth; cvs.height = window.innerHeight; }
+        window.onresize = resize; resize();
+        for(let i=0; i<70; i++) flakes.push({x:Math.random()*cvs.width, y:Math.random()*cvs.height, r:Math.random()*2+1, v:Math.random()*1+0.4});
+        function loop() {
+            ctx.clearRect(0,0,cvs.width,cvs.height); ctx.fillStyle="rgba(255,255,255,0.8)"; ctx.beginPath();
+            flakes.forEach(f => { ctx.moveTo(f.x, f.y); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); f.y+=f.v; if(f.y>cvs.height) f.y=-10; });
+            ctx.fill(); requestAnimationFrame(loop);
+        }
+        loop();
+
+        // 2. ОТОБРАЖЕНИЕ (View)
+        const view = {
+            nav: (screenId) => {
+                document.querySelectorAll('.screen').forEach(s => { 
+                    s.classList.remove('active'); 
+                    setTimeout(() => { if(!s.classList.contains('active')) s.style.display='none' }, 400); 
+                });
+                const target = document.getElementById(screenId);
+                target.style.display = (screenId.includes('entry')) ? 'flex' : 'block';
+                setTimeout(() => target.classList.add('active'), 50);
+                if(screenId === 'screen-hist') view.renderHistory();
+            },
+            renderHome: () => {
+                const u = appState.currentUser;
+                if(!u) return;
+                document.getElementById('u-name').innerText = u.name;
+                document.getElementById('u-id').innerText = 'ID: ' + u.telegramId;
+                document.getElementById('u-ava').innerText = u.name[0].toUpperCase();
+                
+                let cardsHtml = `<div class="card-item card-main"><div>MIR Physical</div><div style="font-size:28px; font-weight:900;">${(u.balance||0).toLocaleString()} ₽</div></div>`;
+                if(u.usd > 0) cardsHtml += `<div class="card-item card-usd"><div>Digital USD</div><div style="font-size:28px; font-weight:900;">${u.usd.toFixed(2)} $</div></div>`;
+                if(u.hasGold) cardsHtml += `<div class="card-item card-gold"><div>Gold Credit</div><div style="font-size:28px; font-weight:900;">${(u.creditLimit||0).toLocaleString()} ₽</div></div>`;
+                document.getElementById('u-cards-box').innerHTML = cardsHtml;
+            },
+            renderHistory: () => {
+                const box = document.getElementById('hist-list-box');
+                rdb.ref(`history/${appState.currentUser.fbKey}`).on('value', snap => {
+                    const data = snap.val();
+                    if(!data) { box.innerHTML = '<p style="text-align:center; color:#888; padding:40px;">Нет операций</p>'; return; }
+                    box.innerHTML = Object.values(data).reverse().map(h => `
+                        <div class="hist-row">
+                            <div class="hist-info"><b>${h.title}</b><span>${h.status === 'wait' ? 'В обработке' : 'Исполнено'}</span></div>
+                            <div class="hist-val ${h.type === 'plus' ? 'val-plus' : 'val-minus'}">
+                                ${h.type === 'plus' ? '+' : '-'}${h.val.toLocaleString()} ${h.unit || '₽'}
+                            </div>
+                        </div>
+                    `).join('');
+                });
+            }
+        };
+
+        // 3. ЛОГИКА (Logic)
         const logic = {
             init: () => {
-                rtdb.ref('clients').on('value', s => {
-                    const d = s.val(); state.all = d ? Object.keys(d).map(k=>({...d[k], fbKey:k})) : [];
-                    if(state.user) {
-                        state.user = state.all.find(x=>x.fbKey === state.user.fbKey);
-                        view.drawDash();
+                // Слушаем базу данных
+                rdb.ref('clients').on('value', snap => {
+                    const data = snap.val();
+                    appState.clients = data ? Object.keys(data).map(k => ({...data[k], fbKey: k})) : [];
+                    if(appState.currentUser) {
+                        appState.currentUser = appState.clients.find(c => c.fbKey === appState.currentUser.fbKey);
+                        view.renderHome();
                     }
                 });
 
-                const urlParams = new URLSearchParams(window.location.search);
-                if(urlParams.get('action') === 'reg_approve') {
-                    const id = urlParams.get('id'), name = decodeURIComponent(urlParams.get('name')), pin = urlParams.get('pin');
-                    rtdb.ref('clients').push({ telegramId: id, name: name, clientPin: pin, balance: 500, usd: 0 }).then(() => {
-                        logic.sendTgToUser(id, `✅ Ваш аккаунт активирован! ПИН: ${pin}`);
+                // Одобрение регистрации по ссылке
+                const url = new URLSearchParams(window.location.search);
+                if(url.get('action') === 'reg_ok') {
+                    const newUser = {
+                        telegramId: url.get('id'),
+                        name: decodeURIComponent(url.get('name')),
+                        clientPin: url.get('pin'),
+                        balance: 500,
+                        usd: 0
+                    };
+                    rdb.ref('clients').push(newUser).then(() => {
+                        alert("Клиент успешно добавлен!");
                         window.location.href = window.location.pathname;
                     });
                 }
-                if(urlParams.get('action') === 'approve') {
-                    const from = urlParams.get('from'), to = urlParams.get('to'), val = parseInt(urlParams.get('val')), hid = urlParams.get('hid');
-                    rtdb.ref('clients').once('value', s => {
-                        const d = s.val();
-                        if(d[from].balance >= val) {
-                            rtdb.ref(`clients/${from}`).update({ balance: d[from].balance - val });
-                            rtdb.ref(`clients/${to}`).update({ balance: (d[to].balance || 0) + val });
-                            rtdb.ref(`history/${from}/${hid}`).update({ status: 'done', ico: '🎁' });
-                            rtdb.ref(`history/${to}`).push({ title: 'Перевод от ' + d[from].name, val: val, type: 'plus', ico: '💰', status: 'done' });
-                            window.location.href = window.location.pathname;
-                        }
-                    });
-                }
             },
-            requestOTP: () => {
-                const id = document.getElementById('auth-tg-id').value;
-                const found = state.all.find(u => String(u.telegramId) === String(id));
+            startAuth: () => {
+                const id = document.getElementById('inp-auth-id').value;
+                const found = appState.clients.find(c => String(c.telegramId) === String(id));
                 if(found) {
-                    state.user = found; state.generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-                    state.otp = ""; logic.updOtpUI();
-                    logic.sendTgToUser(id, `❄️ Код для входа: ${state.generatedOtp}`);
-                    view.nav('screen-otp-entry');
-                } else alert("ID не найден");
+                    appState.currentUser = found;
+                    appState.pinInput = "";
+                    view.nav('screen-pin-entry');
+                } else alert("Пользователь не найден. Пройдите регистрацию.");
             },
-            tapOtp: (v) => {
-                if(v === 'DEL') state.otp = state.otp.slice(0, -1); else if(state.otp.length < 6) state.otp += v;
-                logic.updOtpUI();
-                if(state.otp === state.generatedOtp) { state.pin = ""; view.nav('screen-pin-entry'); }
-            },
-            tapPin: (v) => {
-                if(v==='DEL') state.pin = state.pin.slice(0,-1); else if(state.pin.length < 4) state.pin += v;
-                logic.updPinUI();
-                if(state.pin.length === 4) {
-                    if(String(state.user.clientPin) === state.pin) {
-                        view.drawDash(); // Принудительно рисуем данные перед переходом
-                        view.nav('screen-home');
-                    } else { alert("ПИН неверен"); state.pin = ""; logic.updPinUI(); }
+            pinTap: (val) => {
+                if(val === 'DEL') appState.pinInput = appState.pinInput.slice(0, -1);
+                else if(appState.pinInput.length < 4) appState.pinInput += val;
+
+                document.querySelectorAll('.dot').forEach((d, i) => {
+                    d.classList.toggle('fill', i < appState.pinInput.length);
+                });
+
+                if(appState.pinInput.length === 4) {
+                    if(appState.pinInput === String(appState.currentUser.clientPin)) {
+                        view.renderHome(); // Сначала обновляем данные
+                        view.nav('screen-main'); // Потом переходим
+                    } else {
+                        alert("Неверный ПИН-код");
+                        appState.pinInput = "";
+                        document.querySelectorAll('.dot').forEach(d => d.classList.remove('fill'));
+                    }
                 }
             },
-            updPinUI: () => document.querySelectorAll('.p-dot').forEach((d,i)=>d.classList.toggle('active', i<state.pin.length)),
-            updOtpUI: () => { for(let i=0; i<6; i++) { const box = document.getElementById(`otp-${i}`); box.innerText = state.otp[i] || ""; box.classList.toggle('active', i === state.otp.length); } },
-            registerRequest: () => {
-                const id = document.getElementById('reg-tg-id').value, name = document.getElementById('reg-name').value, pin = document.getElementById('reg-pin').value;
-                const url = `${window.location.href}?action=reg_approve&id=${id}&name=${encodeURIComponent(name)}&pin=${pin}`;
-                logic.sendTg(`🆕 Регистрация: ${name}\nID: ${id}\nПИН: ${pin}`, { inline_keyboard: [[{ text: "Одобрить", url: url }]] });
-                alert("Заявка отправлена!"); view.nav('screen-auth');
-            },
-            sendTg: (m, kb) => fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ chat_id: TG_ADMIN_ID, text: m, reply_markup: kb }) }),
-            sendTgToUser: (id, m) => fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ chat_id: id, text: m }) })
+            sendReg: () => {
+                const id = document.getElementById('reg-id').value;
+                const name = document.getElementById('reg-name').value;
+                const pin = document.getElementById('reg-pin').value;
+                const approveLink = `${window.location.href}?action=reg_ok&id=${id}&name=${encodeURIComponent(name)}&pin=${pin}`;
+
+                fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        chat_id: TG_ADMIN,
+                        text: `🔔 Новая заявка на регистрацию!\nИмя: ${name}\nID: ${id}\nПИН: ${pin}`,
+                        reply_markup: { inline_keyboard: [[{ text: "✅ Одобрить", url: approveLink }]] }
+                    })
+                });
+                alert("Заявка отправлена админу. Ожидайте подтверждения.");
+                view.nav('screen-auth');
+            }
         };
 
+        // 4. БАНКОВСКИЕ ОПЕРАЦИИ
         const bank = {
-            send: () => {
-                const query = document.getElementById('tr-target').value.toLowerCase().trim(), val = parseInt(document.getElementById('tr-val').value), u = state.user;
-                const target = state.all.find(x => String(x.telegramId) === query || x.name.toLowerCase() === query);
-                if(!target || u.balance < val) return alert("Ошибка");
-                const hid = rtdb.ref(`history/${u.fbKey}`).push({ title: 'Перевод ' + target.name, val: val, type: 'minus', ico: '⏳', status: 'wait' }).key;
-                const url = `${window.location.href}?action=approve&from=${u.fbKey}&to=${target.fbKey}&val=${val}&hid=${hid}`;
-                logic.sendTg(`💸 Перевод: ${u.name} -> ${target.name}\nСумма: ${val}₽`, { inline_keyboard: [[{ text: "Одобрить", url: url }]] });
-                view.showSuccess("Заявка ушла", val + " ₽", "Ожидайте подтверждения");
+            execTransfer: () => {
+                const target = document.getElementById('send-target').value;
+                const val = parseInt(document.getElementById('send-val').value);
+                const u = appState.currentUser;
+                if(u.balance < val) return alert("Недостаточно средств");
+
+                rdb.ref(`history/${u.fbKey}`).push({ title: 'Перевод: ' + target, val: val, type: 'minus', status: 'wait' });
+                fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage?chat_id=${TG_ADMIN}&text=💸 Запрос на перевод!\nОт: ${u.name}\nКому: ${target}\nСумма: ${val}₽`);
+                
+                alert("Запрос на перевод отправлен админу.");
+                view.nav('screen-main');
             },
-            exchange: () => {
-                const amt = parseFloat(document.getElementById('ex-val').value), cost = Math.round(amt*91.2), u = state.user;
-                if(u.balance < cost) return alert("Мало средств");
-                rtdb.ref(`clients/${u.fbKey}`).update({ balance: u.balance - cost, usd: (u.usd||0) + amt });
-                rtdb.ref(`history/${u.fbKey}`).push({ title: 'Обмен на USD', val: amt, unit: '$', type: 'plus', ico: '💵', status: 'done' });
-                view.showSuccess("Обмен", amt + " $", "Списано " + cost + " ₽");
-            },
-            loan: () => {
-                const val = document.getElementById('ln-val').value;
-                logic.sendTg(`🌟 Запрос Gold карты: ${state.user.name}\nСумма: ${val}₽`);
-                view.showSuccess("Запрос Gold", val + " ₽", "Проверяем кредитную историю...");
-            },
-            openScanner: () => {
-                document.getElementById('qr-screen').style.display = 'block';
-                scanner = new Html5Qrcode("reader");
-                scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-                    if(text.includes('konline_pay:')) {
-                        bank.closeScanner();
-                        const val = parseInt(text.split(':')[1]);
-                        document.getElementById('qr-pay-sum').innerText = val + " ₽";
-                        document.getElementById('modal-qr-pay').style.display = 'flex';
-                        document.getElementById('confirm-qr-btn').onclick = () => {
-                            if(state.user.balance < val) return alert("Недостаточно средств");
-                            rtdb.ref(`clients/${state.user.fbKey}`).update({ balance: state.user.balance - val });
-                            rtdb.ref(`history/${state.user.fbKey}`).push({ title: 'Оплата по QR', val: val, type: 'minus', ico: '📱', status: 'done' });
-                            document.getElementById('modal-qr-pay').style.display = 'none';
-                            view.showSuccess("Оплачено", val + " ₽", "Успешная покупка!");
-                        };
-                    }
+            execExchange: () => {
+                const amt = parseFloat(document.getElementById('ex-val').value);
+                const cost = Math.round(amt * 91.2);
+                const u = appState.currentUser;
+
+                if(u.balance < cost) return alert("Недостаточно рублей для обмена");
+
+                rdb.ref(`clients/${u.fbKey}`).update({
+                    balance: u.balance - cost,
+                    usd: (u.usd || 0) + amt
                 });
+                rdb.ref(`history/${u.fbKey}`).push({ title: 'Обмен на USD', val: amt, unit: '$', type: 'plus', status: 'done' });
+                
+                alert("Обмен выполнен!");
+                view.nav('screen-main');
             },
-            closeScanner: () => { if(scanner) scanner.stop().then(() => document.getElementById('qr-screen').style.display = 'none'); }
+            reqGold: () => {
+                const val = document.getElementById('gold-val').value;
+                fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage?chat_id=${TG_ADMIN}&text=🌟 Заявка на GOLD карту!\nКлиент: ${appState.currentUser.name}\nЛимит: ${val}₽`);
+                alert("Заявка принята, ожидайте решения админа.");
+                view.nav('screen-main');
+            }
         };
 
         window.onload = logic.init;
