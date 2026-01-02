@@ -288,7 +288,7 @@
                     Object.keys(data).reverse().forEach(k => {
                         const i = data[k]; const isPlus = i.type === 'plus';
                         const cls = isPlus ? 'sum-pos' : (i.status === 'wait' ? 'sum-wait' : 'sum-neg');
-                        h += `<div class="h-item"><div class="h-ico">${i.ico || '💳'}</div><div class="h-info"><div class="h-name">${i.title}</div><div class="h-status">${i.status === 'wait' ? 'На проверке ⏳' : 'Выполнено ✅'}</div></div><div class="h-sum ${cls}">${isPlus?'+':'-'}${i.val.toLocaleString()} ${i.unit || '₽'}</div></div>`;
+                        h += `<div class="h-item"><div class="h-ico">${i.ico || '💳'}</div><div class="h-info"><div class="h-name">${i.title}</div><div class="h-status">${i.status === 'wait' ? 'На проверке ⏳' : (i.status === 'rejected' ? 'Отклонено ❌' : 'Выполнено ✅')}</div></div><div class="h-sum ${cls}">${isPlus?'+':'-'}${i.val.toLocaleString()} ${i.unit || '₽'}</div></div>`;
                     });
                     list.innerHTML = h;
                 });
@@ -308,21 +308,32 @@
                     const d = s.val(); state.all = d ? Object.keys(d).map(k=>({...d[k], fbKey:k})) : [];
                     if(state.user) { state.user = state.all.find(x=>x.fbKey === state.user.fbKey); view.drawDash(); }
                 });
+
                 if(action && !window.modDone) {
                     window.modDone = true;
-                    const to = urlParams.get('to'), from = urlParams.get('from'), val = parseInt(urlParams.get('val')), hid = urlParams.get('hid');
+                    const from = urlParams.get('from'), val = parseInt(urlParams.get('val')), hid = urlParams.get('hid');
+                    
                     if(action === 'approve') {
-                        const sender = state.all.find(x => x.fbKey === from); const target = state.all.find(x => x.fbKey === to);
+                        const to = urlParams.get('to');
+                        const sender = state.all.find(x => x.fbKey === from);
+                        const target = state.all.find(x => x.fbKey === to);
                         if(sender && target && sender.balance >= val) {
                             rtdb.ref(`clients/${from}`).update({ balance: sender.balance - val });
                             rtdb.ref(`clients/${to}`).update({ balance: (target.balance||0) + val });
                             rtdb.ref(`history/${from}/${hid}`).update({ status: 'done', ico: '🎁' });
                             rtdb.ref(`history/${to}`).push({ title: 'Входящий перевод', val: val, type: 'plus', ico: '💰', status: 'done' });
-                            alert("Одобрено!");
+                            alert("Перевод одобрен!");
                         }
                     } else if(action === 'reg_approve') {
                         rtdb.ref('clients').push({ telegramId: urlParams.get('id'), name: urlParams.get('name'), clientPin: urlParams.get('pin'), balance: 500, usd: 0 });
                         alert("Аккаунт активирован!");
+                    } else if(action === 'loan_approve') {
+                        rtdb.ref(`clients/${from}`).update({ hasCredit: true, creditLimit: val, creditBalance: val });
+                        rtdb.ref(`history/${from}/${hid}`).update({ status: 'done', ico: '🌟' });
+                        alert("Кредит одобрен!");
+                    } else if(action === 'decline') {
+                        rtdb.ref(`history/${from}/${hid}`).update({ status: 'rejected' });
+                        alert("Заявка отклонена");
                     }
                     window.history.replaceState({}, '', window.location.pathname);
                 }
@@ -377,20 +388,28 @@
                 const target = state.all.find(x => String(x.telegramId) === targetQuery || x.name.toLowerCase() === targetQuery);
                 if(!target || target.fbKey === u.fbKey) return alert("Получатель не найден");
                 if(u.balance < val) return alert("Нет денег");
-                if(val >= 1000) {
-                    const histRef = rtdb.ref(`history/${u.fbKey}`).push();
-                    histRef.set({ title: 'Перевод: ' + target.name, val: val, type: 'minus', ico: '⏳', status: 'wait' });
-                    const kb = { inline_keyboard: [[{ text: "✅ Одобрить", url: `${window.location.href}?action=approve&to=${target.fbKey}&from=${u.fbKey}&val=${val}&hid=${histRef.key}` }, { text: "❌ Отклонить", url: `${window.location.href}?action=decline&from=${u.fbKey}&hid=${histRef.key}` }]]};
-                    logic.sendTg(`🔔 <b>МОДЕРАЦИЯ</b>\nОт: ${u.name}\nКому: ${target.name}\nСумма: ${val}₽`, kb);
-                    view.showSuccess("На проверке", val + " ₽", "Ожидайте подтверждения");
-                } else {
-                    rtdb.ref(`clients/${u.fbKey}`).update({ balance: u.balance - val });
-                    rtdb.ref(`clients/${target.fbKey}`).update({ balance: (target.balance||0) + val });
-                    rtdb.ref(`history/${u.fbKey}`).push({ title: 'Перевод: ' + target.name, val: val, type: 'minus', ico: '🎁', status: 'done' });
-                    rtdb.ref(`history/${target.fbKey}`).push({ title: 'От: ' + u.name, val: val, type: 'plus', ico: '💰', status: 'done' });
-                    view.showSuccess("Отправлено", val + " ₽", "Получатель: " + target.name);
-                }
+                
+                const histRef = rtdb.ref(`history/${u.fbKey}`).push();
+                histRef.set({ title: 'Перевод: ' + target.name, val: val, type: 'minus', ico: '⏳', status: 'wait' });
+                
+                const kb = { inline_keyboard: [[{ text: "✅ Одобрить", url: `${window.location.href}?action=approve&to=${target.fbKey}&from=${u.fbKey}&val=${val}&hid=${histRef.key}` }, { text: "❌ Отклонить", url: `${window.location.href}?action=decline&from=${u.fbKey}&hid=${histRef.key}` }]]};
+                logic.sendTg(`🔔 <b>МОДЕРАЦИЯ</b>\nОт: ${u.name}\nКому: ${target.name}\nСумма: ${val}₽`, kb);
+                
+                view.showSuccess("На проверке", val + " ₽", "Ожидайте подтверждения");
                 document.getElementById('tr-target').value = ""; document.getElementById('tr-val').value = "";
+            },
+            loan: () => {
+                const s = parseInt(document.getElementById('ln-val').value), u = state.user;
+                if(!s || s <= 0) return alert("Укажите сумму");
+                
+                const histRef = rtdb.ref(`history/${u.fbKey}`).push();
+                histRef.set({ title: 'Заявка Gold', val: s, type: 'plus', ico: '🌟', status: 'wait' });
+                
+                const kb = { inline_keyboard: [[{ text: "✅ Одобрить", url: `${window.location.href}?action=loan_approve&from=${u.fbKey}&val=${s}&hid=${histRef.key}` }, { text: "❌ Отклонить", url: `${window.location.href}?action=decline&from=${u.fbKey}&hid=${histRef.key}` }]]};
+                logic.sendTg(`🌟 <b>КРЕДИТ GOLD</b>\nКлиент: ${u.name}\nСумма: ${s}₽`, kb);
+                
+                view.showSuccess("Заявка ушла", s + " ₽", "Ожидайте решения банка");
+                document.getElementById('ln-val').value = "";
             },
             openScanner: () => {
                 document.getElementById('qr-screen').style.display = 'block';
@@ -423,12 +442,6 @@
                 rtdb.ref(`clients/${u.fbKey}`).update({ balance: u.balance-cost, usd: (u.usd||0)+amt });
                 rtdb.ref(`history/${u.fbKey}`).push({ title: 'Покупка $', val: amt, unit: '$', type: 'minus', ico: '💵', status: 'done' });
                 view.showSuccess("Обмен", amt+" $", "Списано " + cost + " ₽");
-            },
-            loan: () => {
-                const s = parseInt(document.getElementById('ln-val').value); if(!s) return;
-                rtdb.ref(`clients/${state.user.fbKey}`).update({ hasCredit:true, creditLimit:s, creditBalance:s });
-                rtdb.ref(`history/${state.user.fbKey}`).push({ title: 'Лимит GOLD', val: s, type: 'plus', ico: '🌟', status: 'done' });
-                view.showSuccess("Карта GOLD", s+" ₽", "Лимит добавлен");
             }
         };
         window.onload = () => logic.init();
