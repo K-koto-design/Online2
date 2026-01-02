@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Онлайн</title>
+    <title>К-Онлайн</title>
     <meta name="apple-mobile-web-app-title" content="К-Онлайн">
     <link rel="apple-touch-icon" href="https://i.postimg.cc/QtVHC5G0/IMG-3035.jpg">
     <link rel="icon" type="image/png" href="https://i.postimg.cc/QtVHC5G0/IMG-3035.jpg">
@@ -240,13 +240,14 @@
         const TG_TOKEN = '8548215166:AAGVqNJxcZe_2bzWiaJIAFz57WRsIYjZQpM'; 
         const TG_ADMIN_ID = '7597506775';
         const config = { apiKey: "AIzaSyA3J7KnUgxUHZigwRKmndm7xyxJeeLCrxg", databaseURL: "https://webapp-b7149-default-rtdb.europe-west1.firebasedatabase.app", projectId: "webapp-b7149" };
+        
         firebase.initializeApp(config);
         const rtdb = firebase.database();
 
         let state = { all: [], user: null, pin: "", otp: "", generatedOtp: "" };
         let scanner = null;
 
-        // Snow effect
+        // Снег
         const canvas = document.getElementById('snow-canvas');
         const ctx = canvas.getContext('2d');
         let flakes = [];
@@ -284,11 +285,11 @@
                 const list = document.getElementById('full-history-list');
                 rtdb.ref(`history/${state.user.fbKey}`).on('value', s => {
                     let h = ''; const data = s.val();
-                    if(!data) { list.innerHTML = '<p style="color:#aaa; text-align:center;">Нет последних операций</p>'; return; }
+                    if(!data) { list.innerHTML = '<p style="color:#aaa; text-align:center;">Операций пока нет</p>'; return; }
                     Object.keys(data).reverse().forEach(k => {
-                        const i = data[k]; const isPlus = i.type === 'plus';
-                        const cls = isPlus ? 'sum-pos' : (i.status === 'wait' ? 'sum-wait' : 'sum-neg');
-                        h += `<div class="h-item"><div class="h-ico">${i.ico || '💳'}</div><div class="h-info"><div class="h-name">${i.title}</div><div class="h-status">${i.status === 'wait' ? 'На проверке ⏳' : (i.status === 'rejected' ? 'Отклонено ❌' : 'Выполнено ✅')}</div></div><div class="h-sum ${cls}">${isPlus?'+':'-'}${i.val.toLocaleString()} ${i.unit || '₽'}</div></div>`;
+                        const i = data[k];
+                        const cls = i.type === 'plus' ? 'sum-pos' : (i.status === 'wait' ? 'sum-wait' : 'sum-neg');
+                        h += `<div class="h-item"><div class="h-ico">${i.ico || '💳'}</div><div class="h-info"><div class="h-name">${i.title}</div><div class="h-status">${i.status === 'wait' ? 'Ожидание ⏳' : (i.status === 'rejected' ? 'Отклонено ❌' : 'Успешно ✅')}</div></div><div class="h-sum ${cls}">${i.type==='plus'?'+':'-'}${i.val.toLocaleString()} ${i.unit || '₽'}</div></div>`;
                     });
                     list.innerHTML = h;
                 });
@@ -304,35 +305,61 @@
             init: () => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const action = urlParams.get('action');
+                
+                // Слушатель базы
                 rtdb.ref('clients').on('value', s => {
                     const d = s.val(); state.all = d ? Object.keys(d).map(k=>({...d[k], fbKey:k})) : [];
-                    if(state.user) { state.user = state.all.find(x=>x.fbKey === state.user.fbKey); view.drawDash(); }
+                    if(state.user) { 
+                        const updated = state.all.find(x=>x.fbKey === state.user.fbKey); 
+                        if(updated) state.user = updated;
+                        view.drawDash(); 
+                    }
                 });
 
+                // Обработка действий Админа
                 if(action && !window.modDone) {
                     window.modDone = true;
-                    const from = urlParams.get('from'), val = parseInt(urlParams.get('val')), hid = urlParams.get('hid');
-                    
+                    const fromId = urlParams.get('from');
+                    const hid = urlParams.get('hid');
+
                     if(action === 'approve') {
-                        const to = urlParams.get('to');
-                        const sender = state.all.find(x => x.fbKey === from);
-                        const target = state.all.find(x => x.fbKey === to);
-                        if(sender && target && sender.balance >= val) {
-                            rtdb.ref(`clients/${from}`).update({ balance: sender.balance - val });
-                            rtdb.ref(`clients/${to}`).update({ balance: (target.balance||0) + val });
-                            rtdb.ref(`history/${from}/${hid}`).update({ status: 'done', ico: '🎁' });
-                            rtdb.ref(`history/${to}`).push({ title: 'Входящий перевод', val: val, type: 'plus', ico: '💰', status: 'done' });
-                            alert("Перевод одобрен!");
-                        }
-                    } else if(action === 'reg_approve') {
-                        rtdb.ref('clients').push({ telegramId: urlParams.get('id'), name: urlParams.get('name'), clientPin: urlParams.get('pin'), balance: 500, usd: 0 });
-                        alert("Аккаунт активирован!");
-                    } else if(action === 'loan_approve') {
-                        rtdb.ref(`clients/${from}`).update({ hasCredit: true, creditLimit: val, creditBalance: val });
-                        rtdb.ref(`history/${from}/${hid}`).update({ status: 'done', ico: '🌟' });
+                        const toId = urlParams.get('to');
+                        const amount = parseInt(urlParams.get('val'));
+
+                        // ПРЯМОЕ ОБРАЩЕНИЕ К БД ДЛЯ ПЕРЕВОДА (Исправлено)
+                        rtdb.ref('clients').once('value').then(snap => {
+                            const users = snap.val();
+                            if(users[fromId] && users[toId] && users[fromId].balance >= amount) {
+                                const newFromBal = users[fromId].balance - amount;
+                                const newToBal = (users[toId].balance || 0) + amount;
+                                
+                                rtdb.ref(`clients/${fromId}`).update({ balance: newFromBal });
+                                rtdb.ref(`clients/${toId}`).update({ balance: newToBal });
+                                rtdb.ref(`history/${fromId}/${hid}`).update({ status: 'done', ico: '🎁' });
+                                rtdb.ref(`history/${toId}`).push({ title: 'Входящий перевод', val: amount, type: 'plus', ico: '💰', status: 'done' });
+                                alert("Перевод успешно выполнен!");
+                            } else {
+                                alert("Ошибка: Недостаточно средств или неверные ID");
+                            }
+                        });
+                    } 
+                    else if(action === 'reg_approve') {
+                        const uId = urlParams.get('id'), uName = decodeURIComponent(urlParams.get('name')), uPin = urlParams.get('pin');
+                        rtdb.ref('clients').push({ telegramId: uId, name: uName, clientPin: uPin, balance: 500, usd: 0 }, (err) => {
+                            if(!err) {
+                                logic.sendTgToUser(uId, `🎉 <b>Аккаунт подтвержден!</b>\n\n🔐 ПИН: <code>${uPin}</code>\n💰 Бонус: 500 ₽\n\nМожете входить в систему.`);
+                                alert("Пользователь активирован!");
+                            }
+                        });
+                    }
+                    else if(action === 'loan_approve') {
+                        const val = parseInt(urlParams.get('val'));
+                        rtdb.ref(`clients/${fromId}`).update({ hasCredit: true, creditLimit: val, creditBalance: val });
+                        rtdb.ref(`history/${fromId}/${hid}`).update({ status: 'done', ico: '🌟' });
                         alert("Кредит одобрен!");
-                    } else if(action === 'decline') {
-                        rtdb.ref(`history/${from}/${hid}`).update({ status: 'rejected' });
+                    }
+                    else if(action === 'decline') {
+                        rtdb.ref(`history/${fromId}/${hid}`).update({ status: 'rejected' });
                         alert("Заявка отклонена");
                     }
                     window.history.replaceState({}, '', window.location.pathname);
@@ -340,10 +367,10 @@
             },
             registerRequest: () => {
                 const id = document.getElementById('reg-tg-id').value, name = document.getElementById('reg-name').value, pin = document.getElementById('reg-pin').value;
-                if(!id || !name || pin.length !== 4) return alert("Ошибка данных");
-                const kb = { inline_keyboard: [[{ text: "✅ Создать", url: `${window.location.href}?action=reg_approve&id=${id}&name=${encodeURIComponent(name)}&pin=${pin}` }, { text: "❌ Отклонить", url: `${window.location.href}?action=decline` }]]};
-                logic.sendTg(`🆕 <b>РЕГИСТРАЦИЯ</b>\nID: ${id}\nИмя: ${name}`, kb);
-                alert("Заявка отправлена!"); view.nav('screen-auth');
+                if(!id || !name || pin.length !== 4) return alert("Заполните все данные корректно");
+                const kb = { inline_keyboard: [[{ text: "✅ Одобрить", url: `${window.location.href}?action=reg_approve&id=${id}&name=${encodeURIComponent(name)}&pin=${pin}` }, { text: "❌ Отклонить", url: `${window.location.href}?action=decline` }]]};
+                logic.sendTg(`🆕 <b>ЗАЯВКА НА РЕГИСТРАЦИЮ</b>\nID: ${id}\nИмя: ${name}\nПИН: ${pin}`, kb);
+                alert("Заявка отправлена на проверку!"); view.nav('screen-auth');
             },
             requestOTP: () => {
                 const id = document.getElementById('auth-tg-id').value;
@@ -351,23 +378,23 @@
                 if(found) {
                     state.user = found; state.generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
                     state.otp = ""; logic.updOtpUI();
-                    logic.sendTgToUser(found.telegramId, `❄️ Код входа: <b>${state.generatedOtp}</b>`);
+                    logic.sendTgToUser(found.telegramId, `❄️ Код подтверждения: <b>${state.generatedOtp}</b>`);
                     view.nav('screen-otp-entry');
-                } else alert("ID не найден");
+                } else alert("Пользователь не найден");
             },
             tapOtp: (v) => {
                 if(v === 'DEL') state.otp = state.otp.slice(0, -1); else if(state.otp.length < 6) state.otp += v;
                 logic.updOtpUI();
                 if(state.otp.length === 6) {
-                    if(state.otp === state.generatedOtp) { state.pin = ""; document.getElementById('pin-user-name').innerText = state.user.name; logic.updPinUI(); view.nav('screen-pin-entry'); }
-                    else { alert("Неверно!"); state.otp = ""; logic.updOtpUI(); }
+                    if(state.otp === state.generatedOtp) { state.pin = ""; view.nav('screen-pin-entry'); }
+                    else { alert("Неверный код!"); state.otp = ""; logic.updOtpUI(); }
                 }
             },
             tapPin: (v) => {
                 if(v==='DEL') state.pin = state.pin.slice(0,-1); else if(state.pin.length < 4) state.pin += v;
                 logic.updPinUI();
                 if(state.pin.length === 4) {
-                    if(String(state.user.clientPin) === state.pin) { view.drawDash(); view.nav('screen-home'); }
+                    if(String(state.user.clientPin) === state.pin) { view.nav('screen-home'); }
                     else { alert("Неверный ПИН"); state.pin = ""; logic.updPinUI(); }
                 }
             },
@@ -383,43 +410,38 @@
 
         const bank = {
             send: () => {
-                const targetQuery = document.getElementById('tr-target').value.toLowerCase().trim(), val = parseInt(document.getElementById('tr-val').value), u = state.user;
-                if(!targetQuery || !val || val <= 0) return alert("Ошибка");
-                const target = state.all.find(x => String(x.telegramId) === targetQuery || x.name.toLowerCase() === targetQuery);
+                const query = document.getElementById('tr-target').value.toLowerCase().trim(), val = parseInt(document.getElementById('tr-val').value), u = state.user;
+                if(!query || !val || val <= 0) return alert("Введите корректные данные");
+                const target = state.all.find(x => String(x.telegramId) === query || x.name.toLowerCase() === query);
                 if(!target || target.fbKey === u.fbKey) return alert("Получатель не найден");
-                if(u.balance < val) return alert("Нет денег");
+                if(u.balance < val) return alert("Недостаточно средств");
                 
                 const histRef = rtdb.ref(`history/${u.fbKey}`).push();
                 histRef.set({ title: 'Перевод: ' + target.name, val: val, type: 'minus', ico: '⏳', status: 'wait' });
                 
                 const kb = { inline_keyboard: [[{ text: "✅ Одобрить", url: `${window.location.href}?action=approve&to=${target.fbKey}&from=${u.fbKey}&val=${val}&hid=${histRef.key}` }, { text: "❌ Отклонить", url: `${window.location.href}?action=decline&from=${u.fbKey}&hid=${histRef.key}` }]]};
-                logic.sendTg(`🔔 <b>МОДЕРАЦИЯ</b>\nОт: ${u.name}\nКому: ${target.name}\nСумма: ${val}₽`, kb);
+                logic.sendTg(`💸 <b>ЗАПРОС НА ПЕРЕВОД</b>\nОт: ${u.name}\nКому: ${target.name}\nСумма: ${val}₽`, kb);
                 
-                view.showSuccess("На проверке", val + " ₽", "Ожидайте подтверждения");
+                view.showSuccess("Отправлено на модерацию", val + " ₽", "Ожидайте подтверждения админом");
                 document.getElementById('tr-target').value = ""; document.getElementById('tr-val').value = "";
             },
             loan: () => {
                 const s = parseInt(document.getElementById('ln-val').value), u = state.user;
-                if(!s || s <= 0) return alert("Укажите сумму");
-                
+                if(!s || s <= 0) return alert("Введите сумму");
                 const histRef = rtdb.ref(`history/${u.fbKey}`).push();
-                histRef.set({ title: 'Заявка Gold', val: s, type: 'plus', ico: '🌟', status: 'wait' });
-                
-                const kb = { inline_keyboard: [[{ text: "✅ Одобрить", url: `${window.location.href}?action=loan_approve&from=${u.fbKey}&val=${s}&hid=${histRef.key}` }, { text: "❌ Отклонить", url: `${window.location.href}?action=decline&from=${u.fbKey}&hid=${histRef.key}` }]]};
-                logic.sendTg(`🌟 <b>КРЕДИТ GOLD</b>\nКлиент: ${u.name}\nСумма: ${s}₽`, kb);
-                
-                view.showSuccess("Заявка ушла", s + " ₽", "Ожидайте решения банка");
-                document.getElementById('ln-val').value = "";
+                histRef.set({ title: 'Лимит Gold', val: s, type: 'plus', ico: '⏳', status: 'wait' });
+                const kb = { inline_keyboard: [[{ text: "✅ Выдать", url: `${window.location.href}?action=loan_approve&from=${u.fbKey}&val=${s}&hid=${histRef.key}` }, { text: "❌ Отказать", url: `${window.location.href}?action=decline&from=${u.fbKey}&hid=${histRef.key}` }]]};
+                logic.sendTg(`🌟 <b>ЗАПРОС КРЕДИТА</b>\nКлиент: ${u.name}\nСумма: ${s}₽`, kb);
+                view.showSuccess("Заявка принята", s + " ₽", "Рассматриваем ваш запрос...");
             },
             openScanner: () => {
                 document.getElementById('qr-screen').style.display = 'block';
                 scanner = new Html5Qrcode("reader");
                 scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
                     if(text.startsWith('konline_pay:')) {
-                        const amount = parseInt(text.split(':')[1]);
-                        bank.closeScanner(); bank.showQrPayment(amount);
+                        bank.closeScanner(); bank.showQrPayment(parseInt(text.split(':')[1]));
                     }
-                }).catch(() => alert("Камера недоступна"));
+                }).catch(() => alert("Ошибка камеры"));
             },
             closeScanner: () => { if(scanner) scanner.stop().then(() => { document.getElementById('qr-screen').style.display = 'none'; }); },
             showQrPayment: (val) => {
@@ -430,20 +452,21 @@
             processQrPay: (val) => {
                 const u = state.user; if(u.balance < val) return alert("Мало средств!");
                 rtdb.ref(`clients/${u.fbKey}`).update({ balance: u.balance - val }).then(() => {
-                    rtdb.ref('current_check').update({ status: 'paid' });
                     rtdb.ref(`history/${u.fbKey}`).push({ title: 'Оплата QR', val: val, type: 'minus', ico: '📱', status: 'done' });
                     document.getElementById('modal-qr-pay').style.display = 'none';
-                    view.showSuccess("Оплачено", val + " ₽", "Через терминал");
+                    view.showSuccess("Оплачено", val + " ₽", "Платеж через QR выполнен");
                 });
             },
             exchange: () => {
                 const amt = parseFloat(document.getElementById('ex-val').value), cost = Math.round(amt*91.2), u = state.user;
-                if(!amt || u.balance < cost) return alert("Мало баланса");
-                rtdb.ref(`clients/${u.fbKey}`).update({ balance: u.balance-cost, usd: (u.usd||0)+amt });
-                rtdb.ref(`history/${u.fbKey}`).push({ title: 'Покупка $', val: amt, unit: '$', type: 'minus', ico: '💵', status: 'done' });
-                view.showSuccess("Обмен", amt+" $", "Списано " + cost + " ₽");
+                if(!amt || amt <= 0) return alert("Введите количество");
+                if(u.balance < cost) return alert("Недостаточно ₽");
+                rtdb.ref(`clients/${u.fbKey}`).update({ balance: u.balance - cost, usd: (u.usd||0) + amt });
+                rtdb.ref(`history/${u.fbKey}`).push({ title: 'Покупка USD', val: amt, unit: '$', type: 'plus', ico: '💵', status: 'done' });
+                view.showSuccess("Обмен завершен", amt + " $", "Списано " + cost + " ₽");
             }
         };
+
         window.onload = () => logic.init();
     </script>
 </body>
