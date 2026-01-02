@@ -26,74 +26,35 @@
             --radius-btn: 22px;
             --anim-screen: 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
-
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: var(--bg-body); 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-            -webkit-font-smoothing: antialiased;
-        }
-
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg-body); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; -webkit-font-smoothing: antialiased; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-        #snow-canvas {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 9999;
-        }
-
-        .screen { 
-            display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            width: 100%; height: 100%; overflow-y: auto; background: var(--bg-body);
-            z-index: 10; opacity: 0; transform: scale(0.96);
-            transition: opacity var(--anim-screen), transform var(--anim-screen);
-        }
+        #snow-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+        .screen { display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; overflow-y: auto; background: var(--bg-body); z-index: 10; opacity: 0; transform: scale(0.96); transition: opacity var(--anim-screen), transform var(--anim-screen); }
         .screen.active { display: block !important; opacity: 1; transform: scale(1); }
-
         .auth-wrap { padding: 80px 30px; text-align: center; min-height: 100vh; background: #fff; }
-        .logo-text { 
-            font-size: 52px; font-weight: 900; 
-            background: linear-gradient(45deg, #ff0000, #ffcc00); 
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
-            margin: 0; letter-spacing: -2px; 
-        }
-
+        .logo-text { font-size: 52px; font-weight: 900; background: linear-gradient(45deg, #ff0000, #ffcc00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0; letter-spacing: -2px; }
         #screen-pin-entry, #screen-otp-entry { background: var(--grad-red); color: white; display:none; flex-direction: column; justify-content: space-between; align-items: center; padding: 80px 30px 50px; }
         .pin-dots { display: flex; gap: 15px; margin: 40px 0; }
         .p-dot { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; }
         .p-dot.active { background: #ffcc00; border-color: #ffcc00; box-shadow: 0 0 15px #ffcc00; }
-        
         .otp-input-group { display: flex; gap: 8px; justify-content: center; margin-top: 30px; }
         .otp-box { width: 45px; height: 55px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; }
         .otp-box.active { border-color: #ffcc00; box-shadow: 0 0 10px rgba(255,204,0,0.3); }
-
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; max-width: 300px; margin-top: 20px; }
         .k-btn { height: 70px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 28px; backdrop-filter: blur(5px); cursor: pointer; }
         .k-btn:active { background: rgba(255,255,255,0.3); }
-
         .header-top { background: var(--grad-red); padding: 60px 0 40px; border-radius: 0 0 50px 50px; color: white; position: relative; }
         .user-meta { display: flex; justify-content: space-between; padding: 0 30px; align-items: center; margin-bottom: 25px; }
         .ava-box { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 24px; border: 2px solid rgba(255,255,255,0.3); position: relative; }
         .santa-hat { position: absolute; top: -20px; left: -10px; font-size: 30px; transform: rotate(-15deg); }
-
-        /* Кнопка сканера */
-        .scan-trigger {
-            width: 45px; height: 45px;
-            background: var(--grad-pay);
-            border-radius: 15px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 22px; margin-left: 15px;
-            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4);
-        }
-
+        .scan-trigger { width: 45px; height: 45px; background: var(--grad-pay); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-left: 15px; box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4); }
         .cards-row { display: flex; overflow-x: auto; padding: 10px 30px 30px; gap: 15px; scrollbar-width: none; }
         .v-card { min-width: 190px; height: 240px; border-radius: var(--radius-card); padding: 25px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 15px 30px rgba(0,0,0,0.3); flex-shrink: 0; }
         .c-black { background: linear-gradient(160deg, #1a1a1a 0%, #000 100%); color: white; }
         .c-blue { background: linear-gradient(160deg, #002f6c 0%, #001433 100%); color: white; }
         .c-gold { background: linear-gradient(160deg, #d4af37 0%, #f1c40f 100%); color: #4a3b00; }
-
         .widget { background: #fff; border-radius: 24px; padding: 20px; margin: 15px 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); cursor: pointer;}
         .w-ico { width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-
         .history-box { padding: 20px 25px; }
         .h-item { background: #fff; border-radius: 18px; padding: 15px; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
         .h-ico { font-size: 22px; width: 45px; height: 45px; background: #f8f9fa; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
@@ -104,43 +65,23 @@
         .sum-neg { color: #000; }
         .sum-pos { color: #27ae60; }
         .sum-wait { color: #f39c12; }
-
         input, textarea { width: 100%; height: 60px; border-radius: 18px; border: 1px solid #eee; padding: 0 20px; font-size: 17px; margin-bottom: 15px; background: #f9f9f9; font-family: inherit; outline: none; }
         .btn-main { width: 100%; height: 60px; border: none; border-radius: var(--radius-btn); font-size: 17px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .btn-black { background: #000; color: #fff; }
         .btn-red { background: var(--danger); color: #fff; }
         .btn-pay { background: var(--grad-pay); color: white; }
-
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .modal-in { background: #fff; width: 85%; border-radius: 35px; padding: 35px; text-align: center; }
-        
-        /* Специфический стиль для оплаты QR (голубо-зеленый размытый) */
-        .modal-pay {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(25px);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-        }
-
+        .modal-pay { background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.3); color: white; }
         .form-box { padding: 60px 25px; }
-
         .history-trigger { position: absolute; top: 60px; right: 25px; font-size: 30px; cursor: pointer; z-index: 100; transition: transform 0.2s; }
-        .history-trigger:active { transform: scale(0.8); }
-
-        /* Полноэкранный сканер */
-        #qr-screen {
-            position: fixed; inset: 0; background: #000; z-index: 10000; display: none;
-        }
+        #qr-screen { position: fixed; inset: 0; background: #000; z-index: 10000; display: none; }
         #reader { width: 100%; height: 100%; }
-        .qr-overlay {
-            position: absolute; inset: 0; border: 40px solid rgba(0,0,0,0.5);
-            display: flex; align-items: center; justify-content: center; pointer-events: none;
-        }
+        .qr-overlay { position: absolute; inset: 0; border: 40px solid rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; pointer-events: none; }
         .qr-cutout { width: 250px; height: 250px; border: 4px solid #00f2fe; border-radius: 20px; }
     </style>
 </head>
 <body>
-
     <canvas id="snow-canvas"></canvas>
 
     <div id="qr-screen">
@@ -197,12 +138,8 @@
             <h2>Подтверждение</h2>
             <p style="opacity:0.7;">Мы отправили 6-значный код в ваш Telegram бот</p>
             <div class="otp-input-group">
-                <div class="otp-box" id="otp-0"></div>
-                <div class="otp-box" id="otp-1"></div>
-                <div class="otp-box" id="otp-2"></div>
-                <div class="otp-box" id="otp-3"></div>
-                <div class="otp-box" id="otp-4"></div>
-                <div class="otp-box" id="otp-5"></div>
+                <div class="otp-box" id="otp-0"></div><div class="otp-box" id="otp-1"></div><div class="otp-box" id="otp-2"></div>
+                <div class="otp-box" id="otp-3"></div><div class="otp-box" id="otp-4"></div><div class="otp-box" id="otp-5"></div>
             </div>
         </div>
         <div class="keypad">
@@ -211,13 +148,11 @@
             <div class="k-btn" onclick="logic.tapOtp('7')">7</div><div class="k-btn" onclick="logic.tapOtp('8')">8</div><div class="k-btn" onclick="logic.tapOtp('9')">9</div>
             <div class="k-btn" style="opacity:0;"></div><div class="k-btn" onclick="logic.tapOtp('0')">0</div><div class="k-btn" onclick="logic.tapOtp('DEL')">⌫</div>
         </div>
-        <div onclick="view.nav('screen-auth')" style="opacity:0.6; text-decoration:underline; cursor:pointer; margin-top:10px;">Назад</div>
     </div>
 
     <div id="screen-pin-entry" class="screen">
         <div style="text-align:center;">
             <h2 id="pin-user-name">Вход</h2>
-            <p style="opacity:0.6;">Введите ваш ПИН-код</p>
             <div class="pin-dots">
                 <div class="p-dot"></div><div class="p-dot"></div><div class="p-dot"></div><div class="p-dot"></div>
             </div>
@@ -228,7 +163,6 @@
             <div class="k-btn" onclick="logic.tapPin('7')">7</div><div class="k-btn" onclick="logic.tapPin('8')">8</div><div class="k-btn" onclick="logic.tapPin('9')">9</div>
             <div class="k-btn" style="opacity:0;"></div><div class="k-btn" onclick="logic.tapPin('0')">0</div><div class="k-btn" onclick="logic.tapPin('DEL')">⌫</div>
         </div>
-        <div onclick="view.nav('screen-auth')" style="opacity:0.6; text-decoration:underline; cursor:pointer; margin-top:10px;">Отмена</div>
     </div>
 
     <div id="screen-home" class="screen">
@@ -242,24 +176,18 @@
                     </div>
                     <div class="scan-trigger" onclick="bank.openScanner()">📷</div>
                 </div>
-                <div class="ava-box">
-                    <span class="santa-hat">🎅</span>
-                    <span id="h-ava">?</span>
-                </div>
+                <div class="ava-box"><span class="santa-hat">🎅</span><span id="h-ava">?</span></div>
             </div>
             <div class="cards-row" id="h-cards"></div>
         </div>
-
         <div class="widget" onclick="view.nav('screen-transfer')">
             <div class="w-ico" style="background:#fff0f0; color:#e74c3c;">🎁</div>
             <div style="flex:1;"><b>Перевод</b><div style="font-size:12px; color:#aaa;">По имени или Telegram ID</div></div>
         </div>
-
         <div class="widget" onclick="view.nav('screen-exchange')">
             <div class="w-ico" style="background:#e3f2fd; color:#3498db;">💵</div>
             <div style="flex:1;"><b>Обмен валюты</b><div id="w-usd">0.00 $</div></div>
         </div>
-
         <div class="widget" onclick="view.nav('screen-loan')">
             <div class="w-ico" style="background:#fff9e6; color:#f1c40f;">🌟</div>
             <div style="flex:1;"><b>Карта Gold</b><div style="font-size:12px; color:#aaa;">Лимит до 500к</div></div>
@@ -270,9 +198,7 @@
         <div class="form-box" style="padding-top: 60px;">
             <div style="font-size:30px; margin-bottom:10px; cursor:pointer;" onclick="view.nav('screen-home')">←</div>
             <h2 style="font-size:32px; font-weight:900; margin-bottom:20px;">История</h2>
-            <div class="history-box" id="full-history-list" style="padding:0;">
-                <p style="color:#aaa; text-align:center;">Загрузка операций...</p>
-            </div>
+            <div class="history-box" id="full-history-list"></div>
         </div>
     </div>
 
@@ -293,7 +219,7 @@
             <h2>Обмен ❄️</h2>
             <div style="text-align:center; padding:30px; background:#fff; border-radius:30px; box-shadow:0 10px 20px rgba(0,0,0,0.05);">
                 <div style="font-size:42px; font-weight:900;">91.20 ₽</div>
-                <p style="color:#aaa; margin-bottom:20px;">Ккурс за 1 $</p>
+                <p style="color:#aaa; margin-bottom:20px;">Курс за 1 $</p>
                 <input type="number" id="ex-val" placeholder="Сколько $ купить?">
                 <button class="btn-main btn-black" onclick="bank.exchange()">Купить</button>
             </div>
@@ -313,18 +239,14 @@
     <script>
         const TG_TOKEN = '8548215166:AAGVqNJxcZe_2bzWiaJIAFz57WRsIYjZQpM'; 
         const TG_ADMIN_ID = '7597506775';
-        const config = { 
-            apiKey: "AIzaSyA3J7KnUgxUHZigwRKmndm7xyxJeeLCrxg", 
-            databaseURL: "https://webapp-b7149-default-rtdb.europe-west1.firebasedatabase.app", 
-            projectId: "webapp-b7149" 
-        };
+        const config = { apiKey: "AIzaSyA3J7KnUgxUHZigwRKmndm7xyxJeeLCrxg", databaseURL: "https://webapp-b7149-default-rtdb.europe-west1.firebasedatabase.app", projectId: "webapp-b7149" };
         firebase.initializeApp(config);
         const rtdb = firebase.database();
 
         let state = { all: [], user: null, pin: "", otp: "", generatedOtp: "" };
         let scanner = null;
 
-        // СНЕГ
+        // Snow effect
         const canvas = document.getElementById('snow-canvas');
         const ctx = canvas.getContext('2d');
         let flakes = [];
@@ -340,10 +262,7 @@
 
         const view = {
             nav: (id) => {
-                document.querySelectorAll('.screen').forEach(s => { 
-                    s.classList.remove('active'); 
-                    setTimeout(() => { if(!s.classList.contains('active')) s.style.display='none'; }, 400); 
-                });
+                document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); setTimeout(() => { if(!s.classList.contains('active')) s.style.display='none'; }, 400); });
                 const t = document.getElementById(id);
                 t.style.display = (id === 'screen-pin-entry' || id === 'screen-otp-entry') ? 'flex' : 'block';
                 setTimeout(() => t.classList.add('active'), 50);
@@ -356,7 +275,6 @@
                 document.getElementById('h-tg').innerText = 'ID: ' + u.telegramId;
                 document.getElementById('h-ava').innerText = u.name[0];
                 document.getElementById('w-usd').innerText = (u.usd || 0).toFixed(2) + " $";
-                
                 let cards = `<div class="v-card c-black"><div>MIR Physical</div><div style="font-size:24px; font-weight:800;">${(u.balance||0).toLocaleString()} ₽</div></div>`;
                 if(u.usd > 0) cards += `<div class="v-card c-blue"><div>VISA Digital</div><div style="font-size:24px; font-weight:800;">${u.usd.toFixed(2)} $</div></div>`;
                 if(u.hasCredit) cards += `<div class="v-card c-gold"><div>GOLD Credit</div><div style="font-size:24px; font-weight:800;">${(u.creditBalance||0).toLocaleString()} ₽</div></div>`;
@@ -365,182 +283,104 @@
             loadHistory: () => {
                 const list = document.getElementById('full-history-list');
                 rtdb.ref(`history/${state.user.fbKey}`).on('value', s => {
-                    let h = '';
-                    const data = s.val();
+                    let h = ''; const data = s.val();
                     if(!data) { list.innerHTML = '<p style="color:#aaa; text-align:center;">Нет последних операций</p>'; return; }
                     Object.keys(data).reverse().forEach(k => {
-                        const i = data[k];
-                        const isPlus = i.type === 'plus';
+                        const i = data[k]; const isPlus = i.type === 'plus';
                         const cls = isPlus ? 'sum-pos' : (i.status === 'wait' ? 'sum-wait' : 'sum-neg');
-                        h += `<div class="h-item">
-                            <div class="h-ico">${i.ico || '💳'}</div>
-                            <div class="h-info">
-                                <div class="h-name">${i.title}</div>
-                                <div class="h-status" style="color:${isPlus?'#27ae60':(i.status==='wait'?'#f39c12':'#999')}">
-                                    ${i.status === 'wait' ? 'На проверке ⏳' : 'Выполнено ✅'}
-                                </div>
-                            </div>
-                            <div class="h-sum ${cls}">${isPlus?'+':'-'}${i.val.toLocaleString()} ${i.unit || '₽'}</div>
-                        </div>`;
+                        h += `<div class="h-item"><div class="h-ico">${i.ico || '💳'}</div><div class="h-info"><div class="h-name">${i.title}</div><div class="h-status">${i.status === 'wait' ? 'На проверке ⏳' : 'Выполнено ✅'}</div></div><div class="h-sum ${cls}">${isPlus?'+':'-'}${i.val.toLocaleString()} ${i.unit || '₽'}</div></div>`;
                     });
                     list.innerHTML = h;
                 });
             },
             showSuccess: (h, v, p) => {
-                document.getElementById('suc-h').innerText = h; 
-                document.getElementById('suc-val').innerText = v; 
-                document.getElementById('suc-p').innerText = p;
+                document.getElementById('suc-h').innerText = h; document.getElementById('suc-val').innerText = v; document.getElementById('suc-p').innerText = p;
                 document.getElementById('modal-success').style.display = 'flex';
             },
-            hideSuccess: () => { 
-                document.getElementById('modal-success').style.display='none'; 
-                view.nav('screen-home'); 
-            }
+            hideSuccess: () => { document.getElementById('modal-success').style.display='none'; view.nav('screen-home'); }
         };
 
         const logic = {
             init: () => {
                 const urlParams = new URLSearchParams(window.location.search);
                 const action = urlParams.get('action');
-
-                rtdb.ref('clients').once('value', s => {
-                    const d = s.val(); state.all = d ? Object.keys(d).map(k=>({...d[k], fbKey:k})) : [];
-                    
-                    if(action && !window.modDone) {
-                        window.modDone = true;
-                        const to = urlParams.get('to'), from = urlParams.get('from'), val = parseInt(urlParams.get('val')), hid = urlParams.get('hid');
-                        
-                        if(action === 'approve') {
-                            const sender = state.all.find(x => x.fbKey === from);
-                            const target = state.all.find(x => x.fbKey === to);
-                            if(sender && target && sender.balance >= val) {
-                                rtdb.ref(`clients/${from}`).update({ balance: sender.balance - val });
-                                rtdb.ref(`clients/${to}`).update({ balance: (target.balance||0) + val });
-                                rtdb.ref(`history/${from}/${hid}`).update({ status: 'done', ico: '🎁' });
-                                rtdb.ref(`history/${to}`).push({ title: 'Входящий перевод', val: val, type: 'plus', ico: '💰', status: 'done' });
-                                alert("Перевод одобрен!");
-                            }
-                        } 
-                        else if(action === 'reg_approve') {
-                            const newId = urlParams.get('id'), newName = urlParams.get('name'), newPin = urlParams.get('pin');
-                            rtdb.ref('clients').push({ telegramId: newId, name: newName, clientPin: newPin, balance: 500, usd: 0 });
-                            alert("Аккаунт создан и активирован!");
-                        }
-                        else if(action === 'decline') {
-                            if(hid) rtdb.ref(`history/${from}/${hid}`).remove();
-                            alert("Действие отклонено");
-                        }
-                        window.history.replaceState({}, document.title, window.location.pathname);
-                    }
-                });
-
                 rtdb.ref('clients').on('value', s => {
                     const d = s.val(); state.all = d ? Object.keys(d).map(k=>({...d[k], fbKey:k})) : [];
-                    if(state.user) {
-                        state.user = state.all.find(x=>x.fbKey === state.user.fbKey);
-                        view.drawDash();
-                    }
+                    if(state.user) { state.user = state.all.find(x=>x.fbKey === state.user.fbKey); view.drawDash(); }
                 });
+                if(action && !window.modDone) {
+                    window.modDone = true;
+                    const to = urlParams.get('to'), from = urlParams.get('from'), val = parseInt(urlParams.get('val')), hid = urlParams.get('hid');
+                    if(action === 'approve') {
+                        const sender = state.all.find(x => x.fbKey === from); const target = state.all.find(x => x.fbKey === to);
+                        if(sender && target && sender.balance >= val) {
+                            rtdb.ref(`clients/${from}`).update({ balance: sender.balance - val });
+                            rtdb.ref(`clients/${to}`).update({ balance: (target.balance||0) + val });
+                            rtdb.ref(`history/${from}/${hid}`).update({ status: 'done', ico: '🎁' });
+                            rtdb.ref(`history/${to}`).push({ title: 'Входящий перевод', val: val, type: 'plus', ico: '💰', status: 'done' });
+                            alert("Одобрено!");
+                        }
+                    } else if(action === 'reg_approve') {
+                        rtdb.ref('clients').push({ telegramId: urlParams.get('id'), name: urlParams.get('name'), clientPin: urlParams.get('pin'), balance: 500, usd: 0 });
+                        alert("Аккаунт активирован!");
+                    }
+                    window.history.replaceState({}, '', window.location.pathname);
+                }
             },
-
             registerRequest: () => {
-                const id = document.getElementById('reg-tg-id').value;
-                const name = document.getElementById('reg-name').value;
-                const pin = document.getElementById('reg-pin').value;
-                if(!id || !name || pin.length !== 4) return alert("Заполните все поля верно");
-
-                const myUrl = window.location.href.split('?')[0];
-                const kb = { inline_keyboard: [[
-                    { text: "✅ Создать", url: `${myUrl}?action=reg_approve&id=${id}&name=${encodeURIComponent(name)}&pin=${pin}` },
-                    { text: "❌ Отклонить", url: `${myUrl}?action=decline` }
-                ]]};
-
-                logic.sendTg(`🆕 <b>ЗАЯВКА НА РЕГИСТРАЦИЮ</b>\nID: ${id}\nИмя: ${name}\nПИН: ${pin}`, kb);
-                alert("Заявка отправлена! Ожидайте подтверждения.");
-                view.nav('screen-auth');
+                const id = document.getElementById('reg-tg-id').value, name = document.getElementById('reg-name').value, pin = document.getElementById('reg-pin').value;
+                if(!id || !name || pin.length !== 4) return alert("Ошибка данных");
+                const kb = { inline_keyboard: [[{ text: "✅ Создать", url: `${window.location.href}?action=reg_approve&id=${id}&name=${encodeURIComponent(name)}&pin=${pin}` }, { text: "❌ Отклонить", url: `${window.location.href}?action=decline` }]]};
+                logic.sendTg(`🆕 <b>РЕГИСТРАЦИЯ</b>\nID: ${id}\nИмя: ${name}`, kb);
+                alert("Заявка отправлена!"); view.nav('screen-auth');
             },
-
             requestOTP: () => {
                 const id = document.getElementById('auth-tg-id').value;
                 const found = state.all.find(u => String(u.telegramId) === String(id));
                 if(found) {
-                    state.user = found;
-                    state.generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-                    state.otp = "";
-                    logic.updOtpUI();
-                    logic.sendTgToUser(found.telegramId, `❄️ Ваш одноразовый код для входа: <b>${state.generatedOtp}</b>`);
+                    state.user = found; state.generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+                    state.otp = ""; logic.updOtpUI();
+                    logic.sendTgToUser(found.telegramId, `❄️ Код входа: <b>${state.generatedOtp}</b>`);
                     view.nav('screen-otp-entry');
-                } else alert("Пользователь с таким ID не найден");
+                } else alert("ID не найден");
             },
-
             tapOtp: (v) => {
-                if(v === 'DEL') state.otp = state.otp.slice(0, -1);
-                else if(state.otp.length < 6) state.otp += v;
+                if(v === 'DEL') state.otp = state.otp.slice(0, -1); else if(state.otp.length < 6) state.otp += v;
                 logic.updOtpUI();
                 if(state.otp.length === 6) {
-                    if(state.otp === state.generatedOtp) {
-                        state.pin = "";
-                        document.getElementById('pin-user-name').innerText = state.user.name;
-                        logic.updPinUI();
-                        view.nav('screen-pin-entry');
-                    } else {
-                        alert("Неверный код!"); state.otp = ""; logic.updOtpUI();
-                    }
+                    if(state.otp === state.generatedOtp) { state.pin = ""; document.getElementById('pin-user-name').innerText = state.user.name; logic.updPinUI(); view.nav('screen-pin-entry'); }
+                    else { alert("Неверно!"); state.otp = ""; logic.updOtpUI(); }
                 }
             },
-
             tapPin: (v) => {
-                if(v==='DEL') state.pin = state.pin.slice(0,-1);
-                else if(state.pin.length < 4) state.pin += v;
+                if(v==='DEL') state.pin = state.pin.slice(0,-1); else if(state.pin.length < 4) state.pin += v;
                 logic.updPinUI();
                 if(state.pin.length === 4) {
-                    if(String(state.user.clientPin) === state.pin) { 
-                        view.drawDash(); view.nav('screen-home'); 
-                    } else { 
-                        alert("Неверный ПИН-код"); state.pin = ""; logic.updPinUI(); 
-                    }
+                    if(String(state.user.clientPin) === state.pin) { view.drawDash(); view.nav('screen-home'); }
+                    else { alert("Неверный ПИН"); state.pin = ""; logic.updPinUI(); }
                 }
             },
-
             updPinUI: () => document.querySelectorAll('.p-dot').forEach((d,i)=>d.classList.toggle('active', i<state.pin.length)),
-            updOtpUI: () => {
-                for(let i=0; i<6; i++) {
-                    const box = document.getElementById(`otp-${i}`);
-                    box.innerText = state.otp[i] || "";
-                    box.classList.toggle('active', i === state.otp.length);
-                }
-            },
+            updOtpUI: () => { for(let i=0; i<6; i++) { const box = document.getElementById(`otp-${i}`); box.innerText = state.otp[i] || ""; box.classList.toggle('active', i === state.otp.length); } },
             sendTg: (m, kb = null) => {
                 const body = { chat_id: TG_ADMIN_ID, text: m, parse_mode: 'HTML' };
                 if(kb) body.reply_markup = JSON.stringify(kb);
                 fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
             },
-            sendTgToUser: (chatId, m) => {
-                const body = { chat_id: chatId, text: m, parse_mode: 'HTML' };
-                fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
-            }
+            sendTgToUser: (chatId, m) => fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ chat_id: chatId, text: m, parse_mode: 'HTML' }) })
         };
 
         const bank = {
             send: () => {
-                const targetQuery = document.getElementById('tr-target').value.toLowerCase().trim();
-                const val = parseInt(document.getElementById('tr-val').value);
-                const u = state.user;
-
-                if(!targetQuery || !val || val <= 0) return alert("Ошибка ввода");
+                const targetQuery = document.getElementById('tr-target').value.toLowerCase().trim(), val = parseInt(document.getElementById('tr-val').value), u = state.user;
+                if(!targetQuery || !val || val <= 0) return alert("Ошибка");
                 const target = state.all.find(x => String(x.telegramId) === targetQuery || x.name.toLowerCase() === targetQuery);
-
-                if(!target || target.fbKey === u.fbKey) return alert("Ошибка получателя");
-                if(u.balance < val) return alert("Недостаточно средств");
-
+                if(!target || target.fbKey === u.fbKey) return alert("Получатель не найден");
+                if(u.balance < val) return alert("Нет денег");
                 if(val >= 1000) {
                     const histRef = rtdb.ref(`history/${u.fbKey}`).push();
                     histRef.set({ title: 'Перевод: ' + target.name, val: val, type: 'minus', ico: '⏳', status: 'wait' });
-                    const myUrl = window.location.href.split('?')[0];
-                    const kb = { inline_keyboard: [[
-                        { text: "✅ Одобрить", url: `${myUrl}?action=approve&to=${target.fbKey}&from=${u.fbKey}&val=${val}&hid=${histRef.key}` },
-                        { text: "❌ Отклонить", url: `${myUrl}?action=decline&from=${u.fbKey}&val=${val}&hid=${histRef.key}` }
-                    ]]};
+                    const kb = { inline_keyboard: [[{ text: "✅ Одобрить", url: `${window.location.href}?action=approve&to=${target.fbKey}&from=${u.fbKey}&val=${val}&hid=${histRef.key}` }, { text: "❌ Отклонить", url: `${window.location.href}?action=decline&from=${u.fbKey}&hid=${histRef.key}` }]]};
                     logic.sendTg(`🔔 <b>МОДЕРАЦИЯ</b>\nОт: ${u.name}\nКому: ${target.name}\nСумма: ${val}₽`, kb);
                     view.showSuccess("На проверке", val + " ₽", "Ожидайте подтверждения");
                 } else {
@@ -552,77 +392,43 @@
                 }
                 document.getElementById('tr-target').value = ""; document.getElementById('tr-val').value = "";
             },
-
-            // НОВАЯ ЛОГИКА СКАНЕРА
             openScanner: () => {
                 document.getElementById('qr-screen').style.display = 'block';
                 scanner = new Html5Qrcode("reader");
-                scanner.start(
-                    { facingMode: "environment" }, 
-                    { fps: 10, qrbox: 250 },
-                    (text) => {
-                        if(text.startsWith('konline_pay:')) {
-                            const amount = parseInt(text.split(':')[1]);
-                            bank.closeScanner();
-                            bank.showQrPayment(amount);
-                        }
+                scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+                    if(text.startsWith('konline_pay:')) {
+                        const amount = parseInt(text.split(':')[1]);
+                        bank.closeScanner(); bank.showQrPayment(amount);
                     }
-                ).catch(err => alert("Камера недоступна"));
+                }).catch(() => alert("Камера недоступна"));
             },
-
-            closeScanner: () => {
-                if(scanner) scanner.stop().then(() => {
-                    document.getElementById('qr-screen').style.display = 'none';
-                });
-            },
-
+            closeScanner: () => { if(scanner) scanner.stop().then(() => { document.getElementById('qr-screen').style.display = 'none'; }); },
             showQrPayment: (val) => {
                 document.getElementById('qr-pay-sum').innerText = val + " ₽";
                 document.getElementById('modal-qr-pay').style.display = 'flex';
                 document.getElementById('confirm-qr-btn').onclick = () => bank.processQrPay(val);
             },
-
             processQrPay: (val) => {
-                const u = state.user;
-                if(u.balance < val) {
-                    alert("Недостаточно средств на балансе!");
-                    document.getElementById('modal-qr-pay').style.display = 'none';
-                    return;
-                }
-
-                // Выполняем списание
-                const newBalance = u.balance - val;
-                rtdb.ref(`clients/${u.fbKey}`).update({ balance: newBalance }).then(() => {
-                    // Также обновляем статус заказа в POS (если нужно)
+                const u = state.user; if(u.balance < val) return alert("Мало средств!");
+                rtdb.ref(`clients/${u.fbKey}`).update({ balance: u.balance - val }).then(() => {
                     rtdb.ref('current_check').update({ status: 'paid' });
-                    
-                    rtdb.ref(`history/${u.fbKey}`).push({ 
-                        title: 'Оплата по QR (Терминал)', 
-                        val: val, 
-                        type: 'minus', 
-                        ico: '📱', 
-                        status: 'done' 
-                    });
-
+                    rtdb.ref(`history/${u.fbKey}`).push({ title: 'Оплата QR', val: val, type: 'minus', ico: '📱', status: 'done' });
                     document.getElementById('modal-qr-pay').style.display = 'none';
-                    view.showSuccess("Оплачено", val + " ₽", "Через К-Терминал");
+                    view.showSuccess("Оплачено", val + " ₽", "Через терминал");
                 });
             },
-
             exchange: () => {
                 const amt = parseFloat(document.getElementById('ex-val').value), cost = Math.round(amt*91.2), u = state.user;
-                if(!amt || u.balance < cost) return alert("Недостаточно баланса!");
+                if(!amt || u.balance < cost) return alert("Мало баланса");
                 rtdb.ref(`clients/${u.fbKey}`).update({ balance: u.balance-cost, usd: (u.usd||0)+amt });
                 rtdb.ref(`history/${u.fbKey}`).push({ title: 'Покупка $', val: amt, unit: '$', type: 'minus', ico: '💵', status: 'done' });
                 view.showSuccess("Обмен", amt+" $", "Списано " + cost + " ₽");
             },
-
             loan: () => {
                 const s = parseInt(document.getElementById('ln-val').value); if(!s) return;
-                logic.sendTg(`💳 <b>GOLD Заявка</b>\nКлиент: ${state.user.name}\nСумма: ${s}₽`);
                 rtdb.ref(`clients/${state.user.fbKey}`).update({ hasCredit:true, creditLimit:s, creditBalance:s });
                 rtdb.ref(`history/${state.user.fbKey}`).push({ title: 'Лимит GOLD', val: s, type: 'plus', ico: '🌟', status: 'done' });
-                view.showSuccess("Карта GOLD", s+" ₽", "Лимит успешно добавлен");
+                view.showSuccess("Карта GOLD", s+" ₽", "Лимит добавлен");
             }
         };
         window.onload = () => logic.init();
