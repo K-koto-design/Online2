@@ -2,11 +2,10 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>К-Онлайн Банк</title>
+    <title>К-Онлайн PRO</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="К-Онлайн">
     
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -14,432 +13,292 @@
 
     <style>
         :root {
-            --bg-main: #f0f4f8;
-            --grad-red: linear-gradient(170deg, #000a1a 0%, #1a0000 40%, #660000 100%);
-            --grad-pay: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --radius-card: 28px;
-            --radius-btn: 22px;
-            --anim-fast: 0.3s ease;
-            --anim-screen: 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            --bg: #f0f4f8;
+            --grad-dark: linear-gradient(170deg, #000a1a 0%, #1a0000 40%, #660000 100%);
+            --grad-accent: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --radius-xl: 32px;
+            --radius-m: 18px;
         }
 
-        /* Общие стили */
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: var(--bg-main); 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; 
-            -webkit-font-smoothing: antialiased; 
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg); font-family: -apple-system, sans-serif; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        /* Снег */
-        #snow-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
+        #snow-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 9999; }
 
-        /* Система экранов */
-        .screen { 
-            display: none; position: absolute; inset: 0; 
-            overflow-y: auto; background: var(--bg-main); 
-            z-index: 10; opacity: 0; transform: scale(0.96); 
-            transition: opacity var(--anim-screen), transform var(--anim-screen); 
-        }
-        .screen.active { display: block !important; opacity: 1; transform: scale(1); }
+        /* Screens */
+        .screen { display: none; position: absolute; inset: 0; background: var(--bg); z-index: 10; opacity: 0; transform: translateY(20px); transition: 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .screen.active { display: block !important; opacity: 1; transform: translateY(0); }
 
-        /* Шапка приложения */
-        .header-top { background: var(--grad-red); padding: 70px 0 45px; border-radius: 0 0 50px 50px; color: white; position: relative; z-index: 11; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
-        .user-meta { display: flex; justify-content: space-between; align-items: center; padding: 0 25px; margin-bottom: 25px; }
+        /* Auth/OTP/PIN */
+        .auth-container { height: 100%; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 80px 30px 50px; background: var(--grad-dark); color: white; text-align: center; }
+        .otp-display { display: flex; gap: 10px; margin: 30px 0; }
+        .otp-dot { width: 45px; height: 55px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; }
+        .otp-dot.active { border-color: #00f2fe; box-shadow: 0 0 10px #00f2fe; }
         
-        /* Кнопки в шапке */
-        .header-actions { display: flex; gap: 12px; align-items: center; }
-        .h-btn { 
-            width: 48px; height: 48px; border-radius: 16px; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 22px; cursor: pointer; transition: transform 0.2s active;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        .h-btn:active { transform: scale(0.9); }
-        .btn-qr { background: var(--grad-pay); }
-        .btn-history { background: rgba(255,255,255,0.12); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .pin-dots { display: flex; gap: 15px; margin: 30px 0; }
+        .p-dot { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; }
+        .p-dot.active { background: #ffcc00; border-color: #ffcc00; box-shadow: 0 0 15px #ffcc00; }
 
-        /* Аватар */
-        .ava-box { 
-            width: 60px; height: 60px; background: rgba(255,255,255,0.1); 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            font-weight: 800; font-size: 24px; border: 2px solid rgba(255,255,255,0.2); 
-            position: relative; 
-        }
-        .santa-hat { position: absolute; top: -20px; left: -14px; font-size: 32px; transform: rotate(-15deg); }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; max-width: 300px; }
+        .k-btn { height: 75px; border-radius: 50%; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-size: 28px; backdrop-filter: blur(10px); }
 
-        /* Карточки баланса */
-        .cards-slider { display: flex; overflow-x: auto; padding: 10px 25px 30px; gap: 18px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-        .cards-slider::-webkit-scrollbar { display: none; }
-        .card-item { 
-            min-width: 230px; height: 140px; border-radius: var(--radius-card); 
-            padding: 25px; display: flex; flex-direction: column; justify-content: space-between; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.3); flex-shrink: 0;
-            transition: transform 0.3s;
-        }
-        .card-main { background: linear-gradient(160deg, #1a1a1a 0%, #000000 100%); color: white; }
-        .card-usd { background: linear-gradient(160deg, #002f6c 0%, #001433 100%); color: white; }
-        .card-gold { background: linear-gradient(160deg, #d4af37 0%, #f1c40f 100%); color: #4a3b00; }
+        /* Main Header */
+        .header { background: var(--grad-dark); padding: 70px 25px 40px; border-radius: 0 0 45px 45px; color: white; position: relative; }
+        .user-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .actions { display: flex; gap: 12px; }
+        .circle-btn { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-qr { background: var(--grad-accent); border: none; }
 
-        /* Виджеты/Меню */
-        .menu-section { padding: 15px 25px; }
-        .menu-item { 
-            background: #fff; border-radius: 25px; padding: 20px; 
-            display: flex; align-items: center; gap: 15px; margin-bottom: 15px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04); cursor: pointer;
-            transition: background 0.2s;
-        }
-        .menu-item:active { background: #f9f9f9; }
-        .m-icon { width: 55px; height: 55px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        /* Cards */
+        .card-scroll { display: flex; overflow-x: auto; padding: 10px 0 20px; gap: 15px; scrollbar-width: none; }
+        .card-scroll::-webkit-scrollbar { display: none; }
+        .bank-card { min-width: 240px; height: 140px; border-radius: 28px; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
+        .card-black { background: linear-gradient(160deg, #1a1a1a, #000); color: white; }
+        .card-blue { background: linear-gradient(160deg, #004fac, #001a33); color: white; }
 
-        /* Список истории */
-        .hist-container { padding: 0 25px 100px; }
-        .hist-row { 
-            background: #fff; padding: 18px; border-radius: 22px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        }
-        .hist-info b { display: block; font-size: 16px; margin-bottom: 4px; }
-        .hist-info span { font-size: 12px; color: #aaa; }
-        .hist-val { font-weight: 800; font-size: 17px; }
-        .val-plus { color: #27ae60; }
-        .val-minus { color: #000; }
+        /* History */
+        .hist-list { padding: 20px 25px; }
+        .h-card { background: white; padding: 18px; border-radius: 22px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .h-info b { display: block; font-size: 16px; }
+        .h-info span { font-size: 12px; color: #999; }
+        .h-amt { font-weight: 800; font-size: 17px; }
+        .amt-pos { color: #27ae60; }
+        .amt-neg { color: #000; }
 
-        /* Поля ввода и кнопки */
-        .form-group { padding: 30px 25px; }
-        input, textarea { 
-            width: 100%; height: 65px; border-radius: 20px; border: 1px solid #eee; 
-            padding: 0 20px; font-size: 17px; margin-bottom: 15px; 
-            background: #f9f9f9; font-family: inherit; transition: border 0.2s;
-        }
-        input:focus { border-color: #007aff; background: #fff; }
-        .btn-action { 
-            width: 100%; height: 65px; border: none; border-radius: 24px; 
-            font-size: 18px; font-weight: 700; cursor: pointer; 
-            background: #000; color: #fff; transition: 0.3s;
-        }
-        .btn-action:active { transform: scale(0.97); opacity: 0.8; }
+        /* Scanner */
+        #qr-video-container { position: fixed; inset: 0; background: black; z-index: 10000; display: none; }
+        .scan-overlay { position: absolute; inset: 0; border: 50px solid rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+        .scan-box { width: 250px; height: 250px; border: 3px solid #00f2fe; border-radius: 20px; box-shadow: 0 0 20px #00f2fe; }
 
-        /* Экраны авторизации (ПИН и OTP) */
-        #screen-pin-entry, #screen-otp-entry { 
-            background: var(--grad-red); color: white; display:none; 
-            flex-direction: column; justify-content: space-between; 
-            align-items: center; padding: 100px 30px 60px; 
-        }
-        .dots-row { display: flex; gap: 15px; margin: 40px 0; }
-        .dot { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; transition: 0.2s; }
-        .dot.fill { background: #ffcc00; border-color: #ffcc00; box-shadow: 0 0 15px #ffcc00; }
-        
-        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 320px; }
-        .n-btn { 
-            height: 80px; border-radius: 50%; background: rgba(255,255,255,0.08); 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 30px; backdrop-filter: blur(10px); cursor: pointer;
-        }
-        .n-btn:active { background: rgba(255,255,255,0.2); }
+        input { width: 100%; height: 65px; border-radius: 20px; border: 1px solid #eee; padding: 0 20px; font-size: 17px; margin-bottom: 15px; background: #f9f9f9; }
+        .btn-pay { width: 100%; height: 65px; border-radius: 22px; border: none; background: #000; color: #fff; font-size: 18px; font-weight: bold; }
     </style>
 </head>
 <body>
     <canvas id="snow-canvas"></canvas>
 
+    <div id="qr-video-container">
+        <div id="reader" style="width: 100%; height: 100%;"></div>
+        <div class="scan-overlay"><div class="scan-box"></div></div>
+        <button onclick="bank.stopScanner()" style="position:fixed; bottom:50px; left:50%; transform:translateX(-50%); padding:15px 40px; border-radius:20px; z-index:10001;">ОТМЕНА</button>
+    </div>
+
     <div id="screen-auth" class="screen active">
-        <div style="padding: 100px 35px; text-align: center; background: #fff; height: 100vh;">
-            <h1 style="font-size:56px; font-weight:900; background:linear-gradient(45deg, #ff0000, #ffcc00); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin:0; letter-spacing: -2px;">К-Онлайн</h1>
-            <p style="color:#999; margin: 15px 0 50px; font-size: 18px;">Ваш персональный банк ❄️</p>
-            <input type="number" id="inp-auth-id" placeholder="Введите Telegram ID">
-            <button class="btn-action" onclick="logic.startAuth()">Войти в кабинет</button>
-            <p style="margin-top:40px; color:#888;">Нет доступа? <span style="color:#007aff; font-weight:600;" onclick="view.nav('screen-reg')">Регистрация</span></p>
+        <div class="auth-container" style="background: #fff; color: #000;">
+            <div style="margin-top: 50px;">
+                <h1 style="font-size: 48px; font-weight: 900; background: var(--grad-dark); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">К-Онлайн</h1>
+                <p style="color: #888;">Введите ваш Telegram ID для получения кода</p>
+                <input type="number" id="auth-id-input" placeholder="7597506775">
+                <button class="btn-pay" onclick="logic.sendOTP()">Получить код в Telegram</button>
+            </div>
+            <p onclick="view.nav('screen-reg')" style="color: #007aff; margin-bottom: 20px;">Зарегистрироваться</p>
         </div>
     </div>
 
-    <div id="screen-reg" class="screen">
-        <div style="padding: 60px 25px;">
-            <div style="font-size:32px; margin-bottom:25px;" onclick="view.nav('screen-auth')">←</div>
-            <h2 style="font-size:34px; font-weight:900; margin-bottom:30px;">Новый клиент</h2>
-            <input type="number" id="reg-id" placeholder="Telegram ID">
-            <input type="text" id="reg-name" placeholder="Как вас зовут?">
-            <input type="password" id="reg-pin" placeholder="Придумайте ПИН (4 цифры)" maxlength="4">
-            <button class="btn-action" onclick="logic.sendReg()">Отправить заявку</button>
-        </div>
-    </div>
-
-    <div id="screen-pin-entry" class="screen">
-        <div style="text-align:center;">
-            <h2 style="font-size:24px; opacity:0.8;" id="pin-title">Введите ПИН</h2>
-            <div class="dots-row">
-                <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    <div id="screen-otp" class="screen">
+        <div class="auth-container">
+            <div>
+                <h2>Код подтверждения</h2>
+                <p style="opacity: 0.6;">Мы отправили 6-значный код в TG</p>
+                <div class="otp-display" id="otp-dots-wrap">
+                    <div class="otp-dot" id="ot-0"></div><div class="otp-dot" id="ot-1"></div><div class="otp-dot" id="ot-2"></div>
+                    <div class="otp-dot" id="ot-3"></div><div class="otp-dot" id="ot-4"></div><div class="otp-dot" id="ot-5"></div>
+                </div>
+            </div>
+            <div class="keypad">
+                <div class="k-btn" onclick="logic.tapOtp('1')">1</div><div class="k-btn" onclick="logic.tapOtp('2')">2</div><div class="k-btn" onclick="logic.tapOtp('3')">3</div>
+                <div class="k-btn" onclick="logic.tapOtp('4')">4</div><div class="k-btn" onclick="logic.tapOtp('5')">5</div><div class="k-btn" onclick="logic.tapOtp('6')">6</div>
+                <div class="k-btn" onclick="logic.tapOtp('7')">7</div><div class="k-btn" onclick="logic.tapOtp('8')">8</div><div class="k-btn" onclick="logic.tapOtp('9')">9</div>
+                <div class="k-btn" onclick="view.nav('screen-auth')">←</div><div class="k-btn" onclick="logic.tapOtp('0')">0</div><div class="k-btn" onclick="logic.tapOtp('DEL')">⌫</div>
             </div>
         </div>
-        <div class="numpad">
-            <div class="n-btn" onclick="logic.pinTap('1')">1</div><div class="n-btn" onclick="logic.pinTap('2')">2</div><div class="n-btn" onclick="logic.pinTap('3')">3</div>
-            <div class="n-btn" onclick="logic.pinTap('4')">4</div><div class="n-btn" onclick="logic.pinTap('5')">5</div><div class="n-btn" onclick="logic.pinTap('6')">6</div>
-            <div class="n-btn" onclick="logic.pinTap('7')">7</div><div class="n-btn" onclick="logic.pinTap('8')">8</div><div class="n-btn" onclick="logic.pinTap('9')">9</div>
-            <div style="opacity:0"></div><div class="n-btn" onclick="logic.pinTap('0')">0</div><div class="n-btn" onclick="logic.pinTap('DEL')">⌫</div>
+    </div>
+
+    <div id="screen-pin" class="screen">
+        <div class="auth-container">
+            <div>
+                <h2 id="welcome-name">С возвращением</h2>
+                <p style="opacity: 0.6;">Введите 4-значный ПИН</p>
+                <div class="pin-dots">
+                    <div class="p-dot"></div><div class="p-dot"></div><div class="p-dot"></div><div class="p-dot"></div>
+                </div>
+            </div>
+            <div class="keypad">
+                <div class="k-btn" onclick="logic.tapPin('1')">1</div><div class="k-btn" onclick="logic.tapPin('2')">2</div><div class="k-btn" onclick="logic.tapPin('3')">3</div>
+                <div class="k-btn" onclick="logic.tapPin('4')">4</div><div class="k-btn" onclick="logic.tapPin('5')">5</div><div class="k-btn" onclick="logic.tapPin('6')">6</div>
+                <div class="k-btn" onclick="logic.tapPin('7')">7</div><div class="k-btn" onclick="logic.tapPin('8')">8</div><div class="k-btn" onclick="logic.tapPin('9')">9</div>
+                <div style="opacity:0"></div><div class="k-btn" onclick="logic.tapPin('0')">0</div><div class="k-btn" onclick="logic.tapPin('DEL')">⌫</div>
+            </div>
         </div>
     </div>
 
     <div id="screen-main" class="screen">
-        <div class="header-top">
-            <div class="user-meta">
+        <div class="header">
+            <div class="user-row">
                 <div>
-                    <div id="u-name" style="font-size:28px; font-weight:900;">Загрузка...</div>
-                    <div id="u-id" style="font-size:13px; opacity:0.5; margin-top:4px;">ID: ---</div>
+                    <div id="h-name" style="font-size: 26px; font-weight: 900;">Загрузка...</div>
+                    <div id="h-id" style="font-size: 13px; opacity: 0.5;">ID: ---</div>
                 </div>
-                <div class="header-actions">
-                    <div class="h-btn btn-qr" onclick="alert('Сканер активирован')">📷</div>
-                    <div class="h-btn btn-history" onclick="view.nav('screen-hist')">📋</div>
-                    <div class="ava-box">
-                        <span class="santa-hat">🎅</span>
-                        <span id="u-ava">?</span>
+                <div class="actions">
+                    <div class="circle-btn btn-qr" onclick="bank.startScanner()">📷</div>
+                    <div class="circle-btn" onclick="view.nav('screen-history')">📋</div>
+                    <div style="position:relative; width:55px; height:55px; background:rgba(255,255,255,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:20px;">
+                        <span style="position:absolute; top:-15px; left:-10px; font-size:28px;">🎅</span>
+                        <span id="h-ava">?</span>
                     </div>
                 </div>
             </div>
-            <div class="cards-slider" id="u-cards-box">
-                </div>
+            <div class="card-scroll" id="h-cards"></div>
         </div>
-
-        <div class="menu-section">
-            <div class="menu-item" onclick="view.nav('screen-send')">
-                <div class="m-icon" style="background:#fff0f0; color:#e74c3c;">🎁</div>
-                <div style="flex:1;"><b>Перевести деньги</b><div style="font-size:12px; color:#aaa;">По ID или имени</div></div>
-            </div>
-            <div class="menu-item" onclick="view.nav('screen-ex')">
-                <div class="m-icon" style="background:#e3f2fd; color:#3498db;">💵</div>
-                <div style="flex:1;"><b>Обмен валют</b><div id="val-usd-rate" style="font-size:12px; color:#aaa;">Курс: 91.20 ₽</div></div>
-            </div>
-            <div class="menu-item" onclick="view.nav('screen-gold')">
-                <div class="m-icon" style="background:#fff9e6; color:#f1c40f;">🌟</div>
-                <div style="flex:1;"><b>Карта Gold</b><div style="font-size:12px; color:#aaa;">Лимит до 500 000 ₽</div></div>
+        <div style="padding: 20px 25px;">
+            <div style="background:white; padding:20px; border-radius:24px; display:flex; gap:15px; align-items:center;" onclick="view.nav('screen-transfer')">
+                <div style="width:50px; height:50px; background:#fff0f0; border-radius:15px; display:flex; align-items:center; justify-content:center; font-size:24px;">🎁</div>
+                <div><b>Перевод денег</b><div style="font-size:12px; color:#aaa;">Моментально по ID</div></div>
             </div>
         </div>
     </div>
 
-    <div id="screen-hist" class="screen">
-        <div style="padding: 65px 25px 20px; background:#fff; border-radius: 0 0 40px 40px; margin-bottom: 20px;">
-            <div style="font-size:32px; margin-bottom:15px; cursor:pointer;" onclick="view.nav('screen-main')">←</div>
-            <h2 style="font-size:34px; font-weight:900; margin:0;">История</h2>
+    <div id="screen-history" class="screen">
+        <div style="padding: 60px 25px 20px;">
+            <div style="font-size: 32px;" onclick="view.nav('screen-main')">←</div>
+            <h1 style="font-size: 32px; font-weight: 900; margin-top: 10px;">История</h1>
         </div>
-        <div class="hist-container" id="hist-list-box">
-            </div>
-    </div>
-
-    <div id="screen-send" class="screen">
-        <div class="form-group">
-            <div style="font-size:32px; margin-bottom:25px; cursor:pointer;" onclick="view.nav('screen-main')">←</div>
-            <h2 style="font-size:30px; font-weight:800;">Перевод 🎁</h2>
-            <input type="text" id="send-target" placeholder="ID получателя или имя">
-            <input type="number" id="send-val" placeholder="Сумма (₽)">
-            <textarea id="send-msg" placeholder="Комментарий к переводу" style="height:120px; padding-top:20px;"></textarea>
-            <button class="btn-action" onclick="bank.execTransfer()">Отправить запрос</button>
-        </div>
-    </div>
-
-    <div id="screen-ex" class="screen">
-        <div class="form-group">
-            <div style="font-size:32px; margin-bottom:25px; cursor:pointer;" onclick="view.nav('screen-main')">←</div>
-            <h2 style="font-size:30px; font-weight:800;">Купить USD 💵</h2>
-            <div style="background:#fff; padding:30px; border-radius:30px; text-align:center; margin-bottom:25px; box-shadow:0 10px 20px rgba(0,0,0,0.03);">
-                <div style="font-size:48px; font-weight:900;">91.20 ₽</div>
-                <div style="color:#aaa; margin-top:5px;">Цена за 1 доллар</div>
-            </div>
-            <input type="number" id="ex-val" placeholder="Сколько $ купить?">
-            <button class="btn-action" onclick="bank.execExchange()">Выполнить обмен</button>
-        </div>
-    </div>
-
-    <div id="screen-gold" class="screen">
-        <div class="form-group">
-            <div style="font-size:32px; margin-bottom:25px; cursor:pointer;" onclick="view.nav('screen-main')">←</div>
-            <h2 style="font-size:30px; font-weight:800;">Карта Gold 🌟</h2>
-            <p style="color:#777; line-height:1.5; margin-bottom:30px;">Премиальная карта с кредитным лимитом. Подайте заявку, и администратор рассмотрит её в течение 5 минут.</p>
-            <input type="number" id="gold-val" placeholder="Желаемый лимит">
-            <button class="btn-action" onclick="bank.reqGold()">Запросить лимит</button>
-        </div>
+        <div class="hist-list" id="hist-list-wrap"></div>
     </div>
 
     <script>
-        // КОНФИГ
-        const TG_BOT = '8548215166:AAGVqNJxcZe_2bzWiaJIAFz57WRsIYjZQpM';
+        const TG_TOKEN = '8548215166:AAGVqNJxcZe_2bzWiaJIAFz57WRsIYjZQpM';
         const TG_ADMIN = '7597506775';
-        const FB_CONF = { apiKey: "AIzaSyA3J7KnUgxUHZigwRKmndm7xyxJeeLCrxg", databaseURL: "https://webapp-b7149-default-rtdb.europe-west1.firebasedatabase.app", projectId: "webapp-b7149" };
+        const config = { apiKey: "AIzaSyA3J7KnUgxUHZigwRKmndm7xyxJeeLCrxg", databaseURL: "https://webapp-b7149-default-rtdb.europe-west1.firebasedatabase.app", projectId: "webapp-b7149" };
         
-        firebase.initializeApp(FB_CONF);
+        firebase.initializeApp(config);
         const rdb = firebase.database();
 
-        let appState = { 
-            currentUser: null, 
-            clients: [], 
-            pinInput: "" 
-        };
+        let state = { user: null, clients: [], otp: "", pin: "", currentOtp: "", qrScanner: null };
 
-        // 1. СНЕЖИНКИ (Анимация)
-        const cvs = document.getElementById('snow-canvas');
-        const ctx = cvs.getContext('2d');
+        // Snow
+        const canvas = document.getElementById('snow-canvas');
+        const ctx = canvas.getContext('2d');
         let flakes = [];
-        function resize() { cvs.width = window.innerWidth; cvs.height = window.innerHeight; }
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
-        for(let i=0; i<70; i++) flakes.push({x:Math.random()*cvs.width, y:Math.random()*cvs.height, r:Math.random()*2+1, v:Math.random()*1+0.4});
-        function loop() {
-            ctx.clearRect(0,0,cvs.width,cvs.height); ctx.fillStyle="rgba(255,255,255,0.8)"; ctx.beginPath();
-            flakes.forEach(f => { ctx.moveTo(f.x, f.y); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); f.y+=f.v; if(f.y>cvs.height) f.y=-10; });
-            ctx.fill(); requestAnimationFrame(loop);
+        for(let i=0; i<60; i++) flakes.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: Math.random()*2+1, v: Math.random()*1+0.4});
+        function snow() {
+            ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle="white"; ctx.beginPath();
+            flakes.forEach(f => { ctx.moveTo(f.x, f.y); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); f.y+=f.v; if(f.y>canvas.height) f.y=-10; });
+            ctx.fill(); requestAnimationFrame(snow);
         }
-        loop();
+        snow();
 
-        // 2. ОТОБРАЖЕНИЕ (View)
         const view = {
-            nav: (screenId) => {
-                document.querySelectorAll('.screen').forEach(s => { 
-                    s.classList.remove('active'); 
-                    setTimeout(() => { if(!s.classList.contains('active')) s.style.display='none' }, 400); 
-                });
-                const target = document.getElementById(screenId);
-                target.style.display = (screenId.includes('entry')) ? 'flex' : 'block';
-                setTimeout(() => target.classList.add('active'), 50);
-                if(screenId === 'screen-hist') view.renderHistory();
+            nav: (id) => {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                const t = document.getElementById(id);
+                t.style.display = (id.includes('otp') || id.includes('pin')) ? 'flex' : 'block';
+                setTimeout(() => t.classList.add('active'), 50);
+                if(id === 'screen-history') view.loadHistory();
             },
-            renderHome: () => {
-                const u = appState.currentUser;
-                if(!u) return;
-                document.getElementById('u-name').innerText = u.name;
-                document.getElementById('u-id').innerText = 'ID: ' + u.telegramId;
-                document.getElementById('u-ava').innerText = u.name[0].toUpperCase();
+            updateHome: () => {
+                const u = state.user;
+                document.getElementById('h-name').innerText = u.name;
+                document.getElementById('h-id').innerText = 'ID: ' + u.telegramId;
+                document.getElementById('h-ava').innerText = u.name[0].toUpperCase();
                 
-                let cardsHtml = `<div class="card-item card-main"><div>MIR Physical</div><div style="font-size:28px; font-weight:900;">${(u.balance||0).toLocaleString()} ₽</div></div>`;
-                if(u.usd > 0) cardsHtml += `<div class="card-item card-usd"><div>Digital USD</div><div style="font-size:28px; font-weight:900;">${u.usd.toFixed(2)} $</div></div>`;
-                if(u.hasGold) cardsHtml += `<div class="card-item card-gold"><div>Gold Credit</div><div style="font-size:28px; font-weight:900;">${(u.creditLimit||0).toLocaleString()} ₽</div></div>`;
-                document.getElementById('u-cards-box').innerHTML = cardsHtml;
+                let cards = `<div class="bank-card card-black"><div>MIR Physical</div><div style="font-size:26px; font-weight:900;">${(u.balance||0).toLocaleString()} ₽</div></div>`;
+                if(u.usd > 0) cards += `<div class="bank-card card-blue"><div>Digital USD</div><div style="font-size:26px; font-weight:900;">${u.usd.toFixed(2)} $</div></div>`;
+                document.getElementById('h-cards').innerHTML = cards;
             },
-            renderHistory: () => {
-                const box = document.getElementById('hist-list-box');
-                rdb.ref(`history/${appState.currentUser.fbKey}`).on('value', snap => {
+            loadHistory: () => {
+                const wrap = document.getElementById('hist-list-wrap');
+                rdb.ref(`history/${state.user.fbKey}`).on('value', snap => {
                     const data = snap.val();
-                    if(!data) { box.innerHTML = '<p style="text-align:center; color:#888; padding:40px;">Нет операций</p>'; return; }
-                    box.innerHTML = Object.values(data).reverse().map(h => `
-                        <div class="hist-row">
-                            <div class="hist-info"><b>${h.title}</b><span>${h.status === 'wait' ? 'В обработке' : 'Исполнено'}</span></div>
-                            <div class="hist-val ${h.type === 'plus' ? 'val-plus' : 'val-minus'}">
-                                ${h.type === 'plus' ? '+' : '-'}${h.val.toLocaleString()} ${h.unit || '₽'}
-                            </div>
+                    if(!data) { wrap.innerHTML = '<p style="text-align:center; color:#999;">Нет операций</p>'; return; }
+                    wrap.innerHTML = Object.values(data).reverse().map(h => `
+                        <div class="h-card">
+                            <div class="h-info"><b>${h.title}</b><span>${h.status === 'wait' ? 'Ожидание' : 'Успешно'}</span></div>
+                            <div class="h-amt ${h.type==='plus'?'amt-pos':'amt-neg'}">${h.type==='plus'?'+':'-'}${h.val.toLocaleString()} ₽</div>
                         </div>
                     `).join('');
                 });
             }
         };
 
-        // 3. ЛОГИКА (Logic)
         const logic = {
             init: () => {
-                // Слушаем базу данных
                 rdb.ref('clients').on('value', snap => {
-                    const data = snap.val();
-                    appState.clients = data ? Object.keys(data).map(k => ({...data[k], fbKey: k})) : [];
-                    if(appState.currentUser) {
-                        appState.currentUser = appState.clients.find(c => c.fbKey === appState.currentUser.fbKey);
-                        view.renderHome();
-                    }
+                    const d = snap.val();
+                    state.clients = d ? Object.keys(d).map(k => ({...d[k], fbKey: k})) : [];
+                    if(state.user) state.user = state.clients.find(c => c.fbKey === state.user.fbKey);
                 });
-
-                // Одобрение регистрации по ссылке
-                const url = new URLSearchParams(window.location.search);
-                if(url.get('action') === 'reg_ok') {
-                    const newUser = {
-                        telegramId: url.get('id'),
-                        name: decodeURIComponent(url.get('name')),
-                        clientPin: url.get('pin'),
-                        balance: 500,
-                        usd: 0
-                    };
-                    rdb.ref('clients').push(newUser).then(() => {
-                        alert("Клиент успешно добавлен!");
-                        window.location.href = window.location.pathname;
-                    });
-                }
             },
-            startAuth: () => {
-                const id = document.getElementById('inp-auth-id').value;
-                const found = appState.clients.find(c => String(c.telegramId) === String(id));
-                if(found) {
-                    appState.currentUser = found;
-                    appState.pinInput = "";
-                    view.nav('screen-pin-entry');
-                } else alert("Пользователь не найден. Пройдите регистрацию.");
-            },
-            pinTap: (val) => {
-                if(val === 'DEL') appState.pinInput = appState.pinInput.slice(0, -1);
-                else if(appState.pinInput.length < 4) appState.pinInput += val;
-
-                document.querySelectorAll('.dot').forEach((d, i) => {
-                    d.classList.toggle('fill', i < appState.pinInput.length);
-                });
-
-                if(appState.pinInput.length === 4) {
-                    if(appState.pinInput === String(appState.currentUser.clientPin)) {
-                        view.renderHome(); // Сначала обновляем данные
-                        view.nav('screen-main'); // Потом переходим
-                    } else {
-                        alert("Неверный ПИН-код");
-                        appState.pinInput = "";
-                        document.querySelectorAll('.dot').forEach(d => d.classList.remove('fill'));
-                    }
-                }
-            },
-            sendReg: () => {
-                const id = document.getElementById('reg-id').value;
-                const name = document.getElementById('reg-name').value;
-                const pin = document.getElementById('reg-pin').value;
-                const approveLink = `${window.location.href}?action=reg_ok&id=${id}&name=${encodeURIComponent(name)}&pin=${pin}`;
-
-                fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage`, {
+            sendOTP: () => {
+                const id = document.getElementById('auth-id-input').value;
+                const found = state.clients.find(c => String(c.telegramId) === String(id));
+                if(!found) return alert("ID не зарегистрирован");
+                
+                state.user = found;
+                state.currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+                
+                fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        chat_id: TG_ADMIN,
-                        text: `🔔 Новая заявка на регистрацию!\nИмя: ${name}\nID: ${id}\nПИН: ${pin}`,
-                        reply_markup: { inline_keyboard: [[{ text: "✅ Одобрить", url: approveLink }]] }
-                    })
+                    body: JSON.stringify({ chat_id: id, text: `❄️ Ваш одноразовый код: ${state.currentOtp}` })
                 });
-                alert("Заявка отправлена админу. Ожидайте подтверждения.");
-                view.nav('screen-auth');
+                
+                state.otp = ""; logic.renderOtp();
+                view.nav('screen-otp');
+            },
+            tapOtp: (v) => {
+                if(v === 'DEL') state.otp = state.otp.slice(0, -1);
+                else if(state.otp.length < 6) state.otp += v;
+                logic.renderOtp();
+                if(state.otp === state.currentOtp) {
+                    state.pin = ""; logic.renderPin();
+                    view.nav('screen-pin');
+                }
+            },
+            tapPin: (v) => {
+                if(v === 'DEL') state.pin = state.pin.slice(0, -1);
+                else if(state.pin.length < 4) state.pin += v;
+                logic.renderPin();
+                if(state.pin.length === 4) {
+                    if(state.pin === String(state.user.clientPin)) {
+                        view.updateHome();
+                        view.nav('screen-main');
+                    } else { alert("Неверный ПИН"); state.pin = ""; logic.renderPin(); }
+                }
+            },
+            renderOtp: () => {
+                for(let i=0; i<6; i++) {
+                    const d = document.getElementById(`ot-${i}`);
+                    d.innerText = state.otp[i] || "";
+                    d.classList.toggle('active', i === state.otp.length);
+                }
+            },
+            renderPin: () => {
+                document.querySelectorAll('.p-dot').forEach((d, i) => d.classList.toggle('active', i < state.pin.length));
             }
         };
 
-        // 4. БАНКОВСКИЕ ОПЕРАЦИИ
         const bank = {
-            execTransfer: () => {
-                const target = document.getElementById('send-target').value;
-                const val = parseInt(document.getElementById('send-val').value);
-                const u = appState.currentUser;
-                if(u.balance < val) return alert("Недостаточно средств");
-
-                rdb.ref(`history/${u.fbKey}`).push({ title: 'Перевод: ' + target, val: val, type: 'minus', status: 'wait' });
-                fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage?chat_id=${TG_ADMIN}&text=💸 Запрос на перевод!\nОт: ${u.name}\nКому: ${target}\nСумма: ${val}₽`);
-                
-                alert("Запрос на перевод отправлен админу.");
-                view.nav('screen-main');
-            },
-            execExchange: () => {
-                const amt = parseFloat(document.getElementById('ex-val').value);
-                const cost = Math.round(amt * 91.2);
-                const u = appState.currentUser;
-
-                if(u.balance < cost) return alert("Недостаточно рублей для обмена");
-
-                rdb.ref(`clients/${u.fbKey}`).update({
-                    balance: u.balance - cost,
-                    usd: (u.usd || 0) + amt
+            startScanner: () => {
+                document.getElementById('qr-video-container').style.display = 'block';
+                state.qrScanner = new Html5Qrcode("reader");
+                state.qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+                    if(text.includes('pay:')) {
+                        bank.stopScanner();
+                        const val = text.split(':')[1];
+                        alert("Оплата по QR: " + val + "₽");
+                        // Здесь логика списания
+                    }
                 });
-                rdb.ref(`history/${u.fbKey}`).push({ title: 'Обмен на USD', val: amt, unit: '$', type: 'plus', status: 'done' });
-                
-                alert("Обмен выполнен!");
-                view.nav('screen-main');
             },
-            reqGold: () => {
-                const val = document.getElementById('gold-val').value;
-                fetch(`https://api.telegram.org/bot${TG_BOT}/sendMessage?chat_id=${TG_ADMIN}&text=🌟 Заявка на GOLD карту!\nКлиент: ${appState.currentUser.name}\nЛимит: ${val}₽`);
-                alert("Заявка принята, ожидайте решения админа.");
-                view.nav('screen-main');
+            stopScanner: () => {
+                if(state.qrScanner) {
+                    state.qrScanner.stop().then(() => {
+                        document.getElementById('qr-video-container').style.display = 'none';
+                    });
+                }
             }
         };
 
