@@ -13,11 +13,13 @@
     
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
         :root {
             --bg-body: #f0f4f8;
             --grad-red: linear-gradient(170deg, #000a1a 0%, #1a0000 40%, #660000 100%);
+            --grad-pay: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             --white: #ffffff;
             --danger: #ff3b30;
             --radius-card: 28px;
@@ -73,6 +75,16 @@
         .ava-box { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 24px; border: 2px solid rgba(255,255,255,0.3); position: relative; }
         .santa-hat { position: absolute; top: -20px; left: -10px; font-size: 30px; transform: rotate(-15deg); }
 
+        /* Кнопка сканера */
+        .scan-trigger {
+            width: 45px; height: 45px;
+            background: var(--grad-pay);
+            border-radius: 15px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; margin-left: 15px;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4);
+        }
+
         .cards-row { display: flex; overflow-x: auto; padding: 10px 30px 30px; gap: 15px; scrollbar-width: none; }
         .v-card { min-width: 190px; height: 240px; border-radius: var(--radius-card); padding: 25px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 15px 30px rgba(0,0,0,0.3); flex-shrink: 0; }
         .c-black { background: linear-gradient(160deg, #1a1a1a 0%, #000 100%); color: white; }
@@ -97,18 +109,56 @@
         .btn-main { width: 100%; height: 60px; border: none; border-radius: var(--radius-btn); font-size: 17px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .btn-black { background: #000; color: #fff; }
         .btn-red { background: var(--danger); color: #fff; }
+        .btn-pay { background: var(--grad-pay); color: white; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
         .modal-in { background: #fff; width: 85%; border-radius: 35px; padding: 35px; text-align: center; }
+        
+        /* Специфический стиль для оплаты QR (голубо-зеленый размытый) */
+        .modal-pay {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+        }
+
         .form-box { padding: 60px 25px; }
 
         .history-trigger { position: absolute; top: 60px; right: 25px; font-size: 30px; cursor: pointer; z-index: 100; transition: transform 0.2s; }
         .history-trigger:active { transform: scale(0.8); }
+
+        /* Полноэкранный сканер */
+        #qr-screen {
+            position: fixed; inset: 0; background: #000; z-index: 10000; display: none;
+        }
+        #reader { width: 100%; height: 100%; }
+        .qr-overlay {
+            position: absolute; inset: 0; border: 40px solid rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center; pointer-events: none;
+        }
+        .qr-cutout { width: 250px; height: 250px; border: 4px solid #00f2fe; border-radius: 20px; }
     </style>
 </head>
 <body>
 
     <canvas id="snow-canvas"></canvas>
+
+    <div id="qr-screen">
+        <div id="reader"></div>
+        <div class="qr-overlay"><div class="qr-cutout"></div></div>
+        <button onclick="bank.closeScanner()" style="position:fixed; bottom:50px; left:50%; transform:translateX(-50%); padding:15px 40px; border-radius:20px; background:white; border:none; font-weight:800; z-index:10001;">ОТМЕНА</button>
+    </div>
+
+    <div id="modal-qr-pay" class="modal">
+        <div class="modal-in modal-pay">
+            <div style="font-size:50px; margin-bottom:10px;">💳</div>
+            <h2 style="margin:0">Оплата заказа</h2>
+            <div id="qr-pay-sum" style="font-size:48px; font-weight:900; margin:15px 0;">0 ₽</div>
+            <p style="opacity:0.8; margin-bottom:25px;">Средства будут списаны с вашего баланса MIR</p>
+            <button class="btn-main btn-pay" id="confirm-qr-btn">ПОДТВЕРДИТЬ ОПЛАТУ</button>
+            <div onclick="document.getElementById('modal-qr-pay').style.display='none'" style="margin-top:20px; opacity:0.6; cursor:pointer;">Отмена</div>
+        </div>
+    </div>
 
     <div id="modal-success" class="modal">
         <div class="modal-in">
@@ -185,9 +235,12 @@
         <div class="history-trigger" onclick="view.nav('screen-history')">📃</div>
         <div class="header-top">
             <div class="user-meta">
-                <div>
-                    <div id="h-name" style="font-size:24px; font-weight:900;">Загрузка...</div>
-                    <div id="h-tg" style="font-size:12px; opacity:0.6;">ID: ---</div>
+                <div style="display:flex; align-items:center;">
+                    <div>
+                        <div id="h-name" style="font-size:24px; font-weight:900;">Загрузка...</div>
+                        <div id="h-tg" style="font-size:12px; opacity:0.6;">ID: ---</div>
+                    </div>
+                    <div class="scan-trigger" onclick="bank.openScanner()">📷</div>
                 </div>
                 <div class="ava-box">
                     <span class="santa-hat">🎅</span>
@@ -240,7 +293,7 @@
             <h2>Обмен ❄️</h2>
             <div style="text-align:center; padding:30px; background:#fff; border-radius:30px; box-shadow:0 10px 20px rgba(0,0,0,0.05);">
                 <div style="font-size:42px; font-weight:900;">91.20 ₽</div>
-                <p style="color:#aaa; margin-bottom:20px;">Курс за 1 $</p>
+                <p style="color:#aaa; margin-bottom:20px;">Ккурс за 1 $</p>
                 <input type="number" id="ex-val" placeholder="Сколько $ купить?">
                 <button class="btn-main btn-black" onclick="bank.exchange()">Купить</button>
             </div>
@@ -269,6 +322,7 @@
         const rtdb = firebase.database();
 
         let state = { all: [], user: null, pin: "", otp: "", generatedOtp: "" };
+        let scanner = null;
 
         // СНЕГ
         const canvas = document.getElementById('snow-canvas');
@@ -349,7 +403,6 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const action = urlParams.get('action');
 
-                // Обработка действий модерации из URL
                 rtdb.ref('clients').once('value', s => {
                     const d = s.val(); state.all = d ? Object.keys(d).map(k=>({...d[k], fbKey:k})) : [];
                     
@@ -357,7 +410,6 @@
                         window.modDone = true;
                         const to = urlParams.get('to'), from = urlParams.get('from'), val = parseInt(urlParams.get('val')), hid = urlParams.get('hid');
                         
-                        // Одобрение ПЕРЕВОДА
                         if(action === 'approve') {
                             const sender = state.all.find(x => x.fbKey === from);
                             const target = state.all.find(x => x.fbKey === to);
@@ -369,13 +421,11 @@
                                 alert("Перевод одобрен!");
                             }
                         } 
-                        // Одобрение РЕГИСТРАЦИИ
                         else if(action === 'reg_approve') {
                             const newId = urlParams.get('id'), newName = urlParams.get('name'), newPin = urlParams.get('pin');
                             rtdb.ref('clients').push({ telegramId: newId, name: newName, clientPin: newPin, balance: 500, usd: 0 });
                             alert("Аккаунт создан и активирован!");
                         }
-                        // Отклонение
                         else if(action === 'decline') {
                             if(hid) rtdb.ref(`history/${from}/${hid}`).remove();
                             alert("Действие отклонено");
@@ -384,7 +434,6 @@
                     }
                 });
 
-                // Слушатель базы в реальном времени
                 rtdb.ref('clients').on('value', s => {
                     const d = s.val(); state.all = d ? Object.keys(d).map(k=>({...d[k], fbKey:k})) : [];
                     if(state.user) {
@@ -394,7 +443,6 @@
                 });
             },
 
-            // Регистрация
             registerRequest: () => {
                 const id = document.getElementById('reg-tg-id').value;
                 const name = document.getElementById('reg-name').value;
@@ -477,7 +525,6 @@
             send: () => {
                 const targetQuery = document.getElementById('tr-target').value.toLowerCase().trim();
                 const val = parseInt(document.getElementById('tr-val').value);
-                const msg = document.getElementById('tr-msg').value || "Без сообщения";
                 const u = state.user;
 
                 if(!targetQuery || !val || val <= 0) return alert("Ошибка ввода");
@@ -505,6 +552,63 @@
                 }
                 document.getElementById('tr-target').value = ""; document.getElementById('tr-val').value = "";
             },
+
+            // НОВАЯ ЛОГИКА СКАНЕРА
+            openScanner: () => {
+                document.getElementById('qr-screen').style.display = 'block';
+                scanner = new Html5Qrcode("reader");
+                scanner.start(
+                    { facingMode: "environment" }, 
+                    { fps: 10, qrbox: 250 },
+                    (text) => {
+                        if(text.startsWith('konline_pay:')) {
+                            const amount = parseInt(text.split(':')[1]);
+                            bank.closeScanner();
+                            bank.showQrPayment(amount);
+                        }
+                    }
+                ).catch(err => alert("Камера недоступна"));
+            },
+
+            closeScanner: () => {
+                if(scanner) scanner.stop().then(() => {
+                    document.getElementById('qr-screen').style.display = 'none';
+                });
+            },
+
+            showQrPayment: (val) => {
+                document.getElementById('qr-pay-sum').innerText = val + " ₽";
+                document.getElementById('modal-qr-pay').style.display = 'flex';
+                document.getElementById('confirm-qr-btn').onclick = () => bank.processQrPay(val);
+            },
+
+            processQrPay: (val) => {
+                const u = state.user;
+                if(u.balance < val) {
+                    alert("Недостаточно средств на балансе!");
+                    document.getElementById('modal-qr-pay').style.display = 'none';
+                    return;
+                }
+
+                // Выполняем списание
+                const newBalance = u.balance - val;
+                rtdb.ref(`clients/${u.fbKey}`).update({ balance: newBalance }).then(() => {
+                    // Также обновляем статус заказа в POS (если нужно)
+                    rtdb.ref('current_check').update({ status: 'paid' });
+                    
+                    rtdb.ref(`history/${u.fbKey}`).push({ 
+                        title: 'Оплата по QR (Терминал)', 
+                        val: val, 
+                        type: 'minus', 
+                        ico: '📱', 
+                        status: 'done' 
+                    });
+
+                    document.getElementById('modal-qr-pay').style.display = 'none';
+                    view.showSuccess("Оплачено", val + " ₽", "Через К-Терминал");
+                });
+            },
+
             exchange: () => {
                 const amt = parseFloat(document.getElementById('ex-val').value), cost = Math.round(amt*91.2), u = state.user;
                 if(!amt || u.balance < cost) return alert("Недостаточно баланса!");
@@ -512,6 +616,7 @@
                 rtdb.ref(`history/${u.fbKey}`).push({ title: 'Покупка $', val: amt, unit: '$', type: 'minus', ico: '💵', status: 'done' });
                 view.showSuccess("Обмен", amt+" $", "Списано " + cost + " ₽");
             },
+
             loan: () => {
                 const s = parseInt(document.getElementById('ln-val').value); if(!s) return;
                 logic.sendTg(`💳 <b>GOLD Заявка</b>\nКлиент: ${state.user.name}\nСумма: ${s}₽`);
@@ -520,7 +625,6 @@
                 view.showSuccess("Карта GOLD", s+" ₽", "Лимит успешно добавлен");
             }
         };
-
         window.onload = () => logic.init();
     </script>
 </body>
